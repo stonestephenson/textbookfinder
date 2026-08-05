@@ -85,7 +85,8 @@ bash .claude/verify.sh  # syntax-check all JS + run tests (the done-gate)
 1. Import the GitHub repo into Vercel. No framework, no build command — it's static files plus
    one serverless function (`api/parse.js`).
 2. Set the environment variable `ANTHROPIC_API_KEY` (get one at console.anthropic.com).
-   Optional: `PARSE_MODEL` to override the vision model.
+   Optional: `PARSE_MODEL` to override the vision model — the default is `claude-haiku-4-5`
+   (roughly half a cent per screenshot; a whole semester of campus use is a few dollars).
 3. **Set a spend cap** on the Anthropic account. The parse endpoint validates and size-limits
    input but is publicly callable; a monthly cap bounds worst-case abuse.
 4. Point the domain at the deployment.

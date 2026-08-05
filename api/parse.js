@@ -13,7 +13,11 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 
-const MODEL = process.env.PARSE_MODEL || 'claude-opus-5';
+// claude-haiku-4-5: vision-capable and ~1/10th the cost of Opus-tier (about
+// half a cent per screenshot). The confirm step exists to catch parse
+// mistakes, so the cheap model is the right default; set PARSE_MODEL to
+// e.g. 'claude-opus-5' if messy photos need more robustness.
+const MODEL = process.env.PARSE_MODEL || 'claude-haiku-4-5';
 
 const ALLOWED_MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_BASE64_LENGTH = 4 * 1024 * 1024; // ~3MB image; client downscales first
@@ -67,16 +71,16 @@ Extract every course material item that is actually visible. Rules:
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
 - Use warnings for anything the student should know (e.g. "the list appears cut off — there may be more items below").`;
 
-// The swappable model call: image in, ParseResult out.
+// The swappable model call: image in, ParseResult out. The request shape
+// deliberately uses only parameters valid on every current Claude model
+// (Haiku through Opus), so PARSE_MODEL can point anywhere without code edits.
 async function extractItems(imageBase64, mediaType) {
   const client = new Anthropic();
 
-  const response = await client.beta.messages.create({
+  const response = await client.messages.create({
     model: MODEL,
     max_tokens: 8000,
-    output_config: { effort: 'low', format: { type: 'json_schema', schema: RESULT_SCHEMA } },
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
+    output_config: { format: { type: 'json_schema', schema: RESULT_SCHEMA } },
     messages: [
       {
         role: 'user',
