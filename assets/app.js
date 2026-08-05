@@ -106,6 +106,37 @@ function setParseBusy(busy, msg = '') {
   el.textContent = busy ? 'Reading your screenshot…' : msg;
 }
 
+// Downscale/re-encode large images before upload: the parse endpoint accepts
+// ~3MB, and detail beyond ~2000px on the long edge doesn't improve parsing.
+async function prepareImage(file) {
+  const readAsDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.readAsDataURL(blob);
+  });
+
+  const MAX_EDGE = 2000;
+  const MAX_BYTES = 2_500_000;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longEdge = Math.max(bitmap.width, bitmap.height);
+    if (file.size <= MAX_BYTES && longEdge <= MAX_EDGE) {
+      bitmap.close?.();
+      return await readAsDataUrl(file);
+    }
+    const scale = Math.min(1, MAX_EDGE / longEdge);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } catch {
+    return readAsDataUrl(file);
+  }
+}
+
 async function handleImageFile(file) {
   $('input-errors').hidden = true;
   if (!config.parseEndpoint) {
@@ -124,12 +155,7 @@ async function handleImageFile(file) {
 
   setParseBusy(true);
   try {
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error('read failed'));
-      reader.readAsDataURL(file);
-    });
+    const dataUrl = await prepareImage(file);
     const [, mediaType, base64] = dataUrl.match(/^data:([^;]+);base64,(.+)$/) ?? [];
     if (!base64) throw new Error('encode failed');
 
