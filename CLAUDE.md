@@ -5,6 +5,10 @@
 1. **`SEAWOLF_BUNDLE_CONTEXT.md`** — the source of truth. Verified facts (§2–3), the
    **unverified-claims list (§5)**, and settled design decisions (§6). Do not relitigate settled
    decisions; do not let anything from §5 into user-visible copy.
+   ⚠️ This file is **deliberately untracked** (see `.gitignore`): it contains unverified working
+   analysis and pending-inquiry strategy that must not ship with the public site. It lives only
+   in the maintainer's working copy — if it's missing from your checkout, ask the maintainer;
+   never commit it without their explicit decision to publish.
 2. `CLAIMS.md` — the audit trail. **Every factual assertion in the UI must have an entry here.**
    If you add or change UI copy containing a fact, update CLAIMS.md in the same commit. If a
    claim can't be sourced, it doesn't ship.

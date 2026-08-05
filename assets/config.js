@@ -68,6 +68,9 @@ export const config = {
     { name: 'eBay', searchUrl: 'https://www.ebay.com/sch/i.html?_nkw={q}' },
   ],
 
-  // Repository, for the footer.
+  // Repository, for the footer. The two doc links point at GitHub's rendered
+  // views because most static hosts serve raw .md as plain text.
   repoUrl: 'https://github.com/stonestephenson/textbookfinder',
+  methodologyUrl: 'https://github.com/stonestephenson/textbookfinder/blob/main/METHODOLOGY.md',
+  claimsUrl: 'https://github.com/stonestephenson/textbookfinder/blob/main/CLAIMS.md',
 };

@@ -112,7 +112,7 @@ Format: Loose-leaf
   assert.equal(items[0].courseCode, 'ENGL 210');
 });
 
-test('single block containing two ISBNs splits into two items', () => {
+test('single block containing two ISBNs splits into two items, each keeping its own title', () => {
   const raw = `
 CHEM 115 01
 Chemistry: The Central Science
@@ -123,6 +123,38 @@ Format: Paperback
 `;
   const { items } = parseText(raw, config);
   assert.equal(items.length, 2);
+  assert.equal(items[0].title, 'Chemistry: The Central Science');
+  assert.equal(items[1].title, 'Chemistry Lab Manual');
+  assert.equal(items[1].format, 'physical'); // its own Format line
+  assert.equal(items[0].confidence.format, 'low'); // inherited block fallback in a multi-item block
+});
+
+test('per-item format wins over block fallback; access card is never mislabeled physical', () => {
+  const raw = `
+BIOL 115 01
+Campbell Biology
+ISBN: 9780134093413
+Format: Hardcover
+Mastering Biology Access Card
+ISBN: 9780134446417
+`;
+  const { items } = parseText(raw, config);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].format, 'physical');
+  assert.equal(items[1].format, 'access_code');
+  assert.equal(items[1].isAccessCode, true);
+});
+
+test('trailing unattachable lines produce a warning, not a ghost item', () => {
+  const raw = `
+CS 454 01
+Introduction to the Theory of Computation
+ISBN: 9781133187790
+Supplemental notes packet for lab section
+`;
+  const { items, warnings } = parseText(raw, config);
+  assert.equal(items.length, 1);
+  assert.ok(warnings.some((w) => w.includes('couldn’t be attached') || w.includes("couldn't be attached")));
 });
 
 test('course code variants match', () => {

@@ -75,6 +75,14 @@ test('partial prices exceed bundle but only within closeThreshold → still inco
   assert.equal(v.recommendation, 'incomplete');
 });
 
+test('ALL items skipped → no recommendation at all, never opt_out', () => {
+  const items = [item({ skipped: true }), item({ skipped: true }), item({ skipped: true })];
+  const v = computeVerdict(items, 10, config);
+  assert.equal(v.complete, true);
+  assert.equal(v.pricedCount, 0);
+  assert.equal(v.recommendation, 'incomplete');
+});
+
 test('skipped items: verdict computed on priced only, basedOnAll=false', () => {
   const items = [item({ userPrice: 11.08 }), item({ skipped: true })];
   const v = computeVerdict(items, 10, config);

@@ -83,7 +83,7 @@ function isTitleCandidate(line) {
 
 let nextId = 1;
 
-function makeItem({ courseCode, title, titleConfidence, format, isbn }, accessRe) {
+function makeItem({ courseCode, title, titleConfidence, format, formatConfidence, isbn }, accessRe) {
   const searchable = `${title ?? ''}`;
   const isAccessCode = format === 'access_code'
     || ACCESS_RE.test(searchable) || accessRe.test(searchable);
@@ -99,19 +99,23 @@ function makeItem({ courseCode, title, titleConfidence, format, isbn }, accessRe
     confidence: {
       courseCode: courseCode ? 'high' : 'low',
       title: titleConfidence ?? 'low',
-      format: format || isAccessCode ? 'high' : 'low',
+      format: isAccessCode ? 'high' : (format ? (formatConfidence ?? 'high') : 'low'),
       isbn: isbn && isValidIsbn(isbn) ? 'high' : 'low',
     },
   };
 }
 
-// One block (blank-line-separated chunk) can hold several items; a new ISBN
-// starts a new one. Course code and format found anywhere in the block apply
-// to every item in it.
+// One block (blank-line-separated chunk) can hold several items. A new item
+// starts at a second ISBN, or at a title line that appears after the current
+// item already has its ISBN. Format is tracked per item; a block-level format
+// only carries to other items in the block as a LOW-confidence fallback —
+// inheriting it silently at high confidence is how an access code gets
+// mislabeled as a paperback.
 function parseBlock(lines, accessRe) {
   let courseCode = null;
   let blockFormat = null;
-  const segments = [{ titleLines: [], isbn: null }];
+  const segments = [{ titleLines: [], isbn: null, format: null }];
+  const current = () => segments[segments.length - 1];
 
   for (const line of lines) {
     const courseMatch = line.match(COURSE_LINE_RE);
@@ -121,32 +125,45 @@ function parseBlock(lines, accessRe) {
     }
     const isbn = findIsbn(line);
     if (isbn) {
-      const current = segments[segments.length - 1];
-      if (current.isbn) segments.push({ titleLines: [], isbn });
-      else current.isbn = isbn;
+      if (current().isbn) segments.push({ titleLines: [], isbn, format: null });
+      else current().isbn = isbn;
       continue;
     }
     const fmt = classifyFormat(line, accessRe);
-    if (fmt) {
+    if (fmt && !isTitleCandidate(line)) {
+      current().format = current().format ?? fmt;
       blockFormat = blockFormat ?? fmt;
-      if (!isTitleCandidate(line)) continue;
+      continue;
     }
     if (isTitleCandidate(line)) {
-      segments[segments.length - 1].titleLines.push(line);
+      if (current().isbn) segments.push({ titleLines: [line], isbn: null, format: null });
+      else current().titleLines.push(line);
+      if (fmt) {
+        current().format = current().format ?? fmt;
+        blockFormat = blockFormat ?? fmt;
+      }
     }
   }
 
-  return segments
-    .filter((seg) => seg.isbn || (courseCode && seg.titleLines.length > 0))
-    .map((seg) => makeItem({
-      courseCode,
-      title: seg.titleLines[0] ?? null,
-      titleConfidence: seg.titleLines.length === 1 ? 'high' : 'low',
-      format: seg.titleLines.some((l) => classifyFormat(l, accessRe)) && blockFormat === null
-        ? classifyFormat(seg.titleLines.join(' '), accessRe)
-        : blockFormat,
-      isbn: seg.isbn,
-    }, accessRe));
+  // Trailing ISBN-less segments in a multi-item block are too ambiguous to
+  // turn into items — surface their lines as a warning instead of guessing.
+  const kept = segments.filter((seg, i) => seg.isbn
+    || (i === 0 && courseCode && seg.titleLines.length > 0));
+  const orphanedLines = segments
+    .filter((seg) => !kept.includes(seg))
+    .flatMap((seg) => seg.titleLines);
+
+  const multi = kept.length > 1;
+  const items = kept.map((seg) => makeItem({
+    courseCode,
+    title: seg.titleLines[0] ?? null,
+    titleConfidence: seg.titleLines.length === 1 ? 'high' : 'low',
+    format: seg.format ?? blockFormat,
+    formatConfidence: seg.format ? 'high' : (blockFormat && !multi ? 'high' : 'low'),
+    isbn: seg.isbn,
+  }, accessRe));
+
+  return { items, orphanedLines };
 }
 
 export function parseText(raw, config) {
@@ -159,7 +176,15 @@ export function parseText(raw, config) {
     .map((b) => b.split('\n').map((l) => l.trim()).filter(Boolean))
     .filter((b) => b.length > 0);
 
-  const items = blocks.flatMap((block) => parseBlock(block, accessRe));
+  const parsed = blocks.map((block) => parseBlock(block, accessRe));
+  const items = parsed.flatMap((p) => p.items);
+  const orphaned = parsed.flatMap((p) => p.orphanedLines);
+  if (items.length > 0 && orphaned.length > 0) {
+    warnings.push(
+      `Some pasted lines couldn't be attached to an item (e.g. “${orphaned[0]}”). `
+      + 'Check the list below and add anything that’s missing.',
+    );
+  }
 
   if (items.length === 0 && text.trim().length > 0) {
     warnings.push(

@@ -105,6 +105,25 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'POST only' });
     return;
   }
+  // Soft same-origin check: browsers send an Origin header on cross-origin
+  // POSTs, so this blocks other sites driving cost against this endpoint.
+  // (Non-browser abuse is bounded by the input limits and the account's
+  // spend cap — see README.)
+  const origin = req.headers.origin;
+  if (origin) {
+    let originHost;
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      originHost = null;
+    }
+    const allowed = originHost === req.headers.host
+      || originHost === 'localhost:8000' || originHost?.startsWith('localhost:');
+    if (!allowed) {
+      res.status(403).json({ error: 'Cross-origin requests are not accepted.' });
+      return;
+    }
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
     res.status(503).json({
       error: 'Screenshot parsing isn’t configured on this deployment. Paste the page text instead — that works entirely in your browser.',

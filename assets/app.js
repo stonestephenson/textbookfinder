@@ -94,7 +94,7 @@ function showInputError(msg) {
 
 function readUnits() {
   const v = Number($('units-input').value);
-  if (Number.isInteger(v) && v >= 1 && v <= config.maxUnits) return v;
+  if (Number.isFinite(v) && v >= 1 && v <= config.maxUnits) return v;
   return null;
 }
 
@@ -184,6 +184,7 @@ async function handleImageFile(file) {
     }
     state.items = items;
     state.warnings = body.warnings ?? [];
+    state.units = readUnits() ?? state.units;
     renderConfirm();
     showStep('confirm');
   } catch {
@@ -203,6 +204,7 @@ function handlePastedText() {
   }
   state.items = adoptItems(items);
   state.warnings = warnings;
+  state.units = readUnits() ?? state.units;
   renderConfirm();
   showStep('confirm');
 }
@@ -248,6 +250,7 @@ function wireInputStep() {
     e.preventDefault();
     state.items = [emptyItem()];
     state.warnings = [];
+    state.units = readUnits() ?? state.units;
     renderConfirm();
     showStep('confirm');
   });
@@ -336,8 +339,8 @@ function wireConfirmStep() {
     errEl.hidden = true;
 
     const unitsVal = Number($('confirm-units-input')?.value);
-    if (!Number.isInteger(unitsVal) || unitsVal < 1 || unitsVal > config.maxUnits) {
-      errEl.textContent = `Enter your registered units (1–${config.maxUnits}) — the bundle is billed per unit.`;
+    if (!Number.isFinite(unitsVal) || unitsVal < 1 || unitsVal > config.maxUnits) {
+      errEl.textContent = `Enter your registered units, between 1 and ${config.maxUnits} — the bundle is billed per unit.`;
       errEl.hidden = false;
       return;
     }
@@ -364,16 +367,18 @@ function retailerLinks(item) {
 
 function renderVerdict() {
   const units = state.units;
+  const bundleCost = Math.round(units * config.pricePerUnit * 100) / 100;
   $('bundle-line').innerHTML = `The Seawolf Bundle for your <strong>${units} units</strong>:
-    ${units} × ${fmt(config.pricePerUnit)} = <strong>${fmt(units * config.pricePerUnit)}</strong>
-    <span class="muted small">(${config.term} rate, confirmed in writing by the bookstore — see <a href="CLAIMS.md">sources</a>)</span>`;
+    ${units} × ${fmt(config.pricePerUnit)} = <strong>${fmt(bundleCost)}</strong>
+    <span class="muted small">(current rate, confirmed in writing by the bookstore, July 2026 —
+    see <a href="${esc(config.claimsUrl)}">sources</a>)</span>`;
 
   const container = $('verdict-items');
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    container.innerHTML = `<p><strong>Find the real price of each item</strong> — the links search by
-      ${state.items.some((i) => i.isbn) ? 'ISBN' : 'title'}. Type in the best price you find and the
+    container.innerHTML = `<p><strong>Find the real price of each item</strong> — each link searches
+      by ISBN when your cart showed one, otherwise by title. Type in the best price you find and the
       totals update. Your numbers, your verdict.</p>`
       + state.items.map((item, idx) => `
       <div class="v-item">
@@ -385,8 +390,8 @@ function renderVerdict() {
         <div class="retailer-links">${retailerLinks(item)}</div>
         <div class="price-row">
           <label for="price-${idx}">Best price you found</label>
-          <input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" step="0.01"
-            inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}">
+          <input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
+            inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}" ${item.skipped ? 'disabled' : ''}>
           <label class="skip-label"><input type="checkbox" data-skip-idx="${idx}" ${item.skipped ? 'checked' : ''}>
             couldn’t find it</label>
         </div>
@@ -423,6 +428,12 @@ function updateVerdictPanel() {
     detail = `<p class="verdict-detail">Buying nothing costs $0.00. Based on what your cart shows
       today, opting out saves you <strong>${fmt(v.difference)}</strong>. Materials can still be
       added later — see below.</p>`;
+  } else if (v.recommendation === 'incomplete' && v.complete && v.pricedCount === 0) {
+    headline = 'Every item is marked “couldn’t find it” — there’s nothing to compare yet.';
+    detail = `<p class="verdict-detail">The bundle costs ${fmt(v.bundleCost)} for your units,
+      but without at least one price you found, the tool has no basis for a verdict and won’t
+      invent one. Try the search links again, or ask a librarian or classmate for help finding
+      a price.</p>`;
   } else if (v.recommendation === 'incomplete') {
     headline = 'Enter the prices you find and the verdict appears here.';
     detail = `<p class="verdict-detail">So far: bundle ${fmt(v.bundleCost)} vs
@@ -448,7 +459,7 @@ function updateVerdictPanel() {
     detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy vs ${fmt(v.bundleCost)}
       for the bundle, ${basis}. At this margin, think about the non-price factors: bundle items are
       mostly rentals you return; books you buy are yours to keep or resell; and materials can be
-      added to courses later in the term.</p>`;
+      added to a course after you decide.</p>`;
   }
 
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0
@@ -461,7 +472,7 @@ function updateVerdictPanel() {
   panel.innerHTML = `<p class="verdict-headline">${headline}</p>${detail}${accessNote}
     <p class="muted small">Prices you type are your findings from the linked stores — the tool
     doesn’t verify them, and the verdict is only as good as your numbers.
-    <a href="METHODOLOGY.md">How this is computed</a>.</p>`;
+    <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>`;
 }
 
 function wireVerdictStep() {
@@ -470,9 +481,14 @@ function wireVerdictStep() {
     const skipIdx = e.target.dataset?.skipIdx;
     if (priceIdx !== undefined) {
       const val = e.target.value === '' ? null : Number(e.target.value);
-      state.items[Number(priceIdx)].userPrice = Number.isFinite(val) && val >= 0 ? val : null;
+      const valid = Number.isFinite(val) && val >= 0 && val <= 99999;
+      if (val !== null && !valid) e.target.value = ''; // don't display a number the math ignores
+      state.items[Number(priceIdx)].userPrice = valid ? val : null;
     } else if (skipIdx !== undefined) {
-      state.items[Number(skipIdx)].skipped = e.target.checked;
+      const item = state.items[Number(skipIdx)];
+      item.skipped = e.target.checked;
+      const priceInput = e.target.closest('.v-item')?.querySelector('input[type="number"]');
+      if (priceInput) priceInput.disabled = e.target.checked; // skipped ⇒ its price is excluded
     } else {
       return;
     }
@@ -505,3 +521,7 @@ $('repo-link')?.setAttribute('href', config.repoUrl);
 document.querySelectorAll('[data-config="pricePerUnit"]').forEach((el) => {
   el.textContent = fmt(config.pricePerUnit);
 });
+// Doc links point at GitHub's rendered views (raw .md serves as plain text
+// on most static hosts).
+document.querySelectorAll('[data-link="methodology"]').forEach((el) => el.setAttribute('href', config.methodologyUrl));
+document.querySelectorAll('[data-link="claims"]').forEach((el) => el.setAttribute('href', config.claimsUrl));

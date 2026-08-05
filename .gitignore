@@ -1,4 +1,9 @@
 .DS_Store
+# Investigation working notes — deliberately untracked. Contains unverified
+# analysis (its own §5 says it must not appear on the site) plus pending-
+# inquiry strategy. Publishing it is a one-line decision for the maintainer,
+# not a side effect of a push.
+SEAWOLF_BUNDLE_CONTEXT.md
 node_modules/
 .vercel/
 .env

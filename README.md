@@ -11,11 +11,10 @@ Built by an SSU student. Not affiliated with SSU, Sonoma State Enterprises, or B
 - **Every factual claim on the site, with its source:** [CLAIMS.md](CLAIMS.md)
 - **The underlying contract** (public records request PRA 2026-495):
   [`contract/PRA 2026-495.pdf`](contract/PRA%202026-495.pdf)
-- **Investigation background:** [SEAWOLF_BUNDLE_CONTEXT.md](SEAWOLF_BUNDLE_CONTEXT.md)
 
 ## What it never does
 
-These are design rules, not merely current facts (see the context doc, §6):
+These are design rules, not merely current facts:
 
 - Never asks for SSU credentials of any kind. No login, no OAuth.
 - Never scrapes the bookstore site.
@@ -122,7 +121,6 @@ api/parse.js              Serverless screenshot parser (the only file that calls
 tests/                    node --test suites for verdict + text parser
 METHODOLOGY.md            Exactly how the verdict is computed, and what the tool doesn't know
 CLAIMS.md                 Audit trail: every UI claim → its source
-SEAWOLF_BUNDLE_CONTEXT.md Investigation background and design decisions
 contract/                 The public-records production backing the claims
 .claude/verify.sh         Done-gate: JS syntax check + tests
 ```

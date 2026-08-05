@@ -43,7 +43,8 @@
 
       <p class="muted small">No login, ever &mdash; this tool never asks for SSU credentials.
         Pasted text is read entirely in your browser. Screenshots are sent once to a parsing
-        service to extract titles, then discarded &mdash; never stored. Or skip all that and
+        service (the Anthropic API) to read your item list &mdash; course, title, format, ISBN
+        &mdash; and this site never stores them. Or skip all that and
         <a href="#" id="manual-entry-link">enter your items by hand</a>.</p>
 
       <div id="input-errors" class="notice notice-warn" hidden></div>
@@ -73,10 +74,10 @@
       <div id="verdict-panel"></div>
       <div class="notice" id="deadline-note"></div>
       <div class="notice">
-        <strong>If your cart changes, so can this answer.</strong> Professors can add materials
-        after the term starts (the contract allows late adoptions), so check your cart again near
-        the deadline. And opting out is not a lockout: if a course later needs something, you can
-        buy just that item, then.
+        <strong>If your cart changes, so can this answer.</strong> The contract permits late
+        faculty adoptions, so materials can be added to a course after you make your decision
+        &mdash; check your cart again near the deadline. And opting out is not a lockout: if a
+        course later needs something, you can buy just that item, then.
       </div>
       <div class="confirm-actions">
         <button type="button" class="btn" id="edit-items-btn">Edit my items</button>
@@ -128,9 +129,9 @@
       <p>It reads what <em>your</em> cart shows, has you confirm it, and does arithmetic. It never
         looks up prices behind your back and never asserts a price it didn&rsquo;t source &mdash;
         the buy-it-yourself total is built from prices <em>you</em> find at the links it gives you.
-        The full computation is documented in <a href="METHODOLOGY.md">METHODOLOGY.md</a>, and
+        The full computation is documented in <a data-link="methodology" href="METHODOLOGY.md">METHODOLOGY.md</a>, and
         every factual claim on this page is sourced line-by-line in
-        <a href="CLAIMS.md">CLAIMS.md</a>.</p>
+        <a data-link="claims" href="CLAIMS.md">CLAIMS.md</a>.</p>
     </section>
   </main>
 
@@ -140,8 +141,8 @@
     <p>Facts on this page come from the SSE&ndash;Barnes &amp; Noble bookstore contract, obtained
       through public records request PRA&nbsp;2026&#8209;495 &mdash;
       <a href="contract/PRA%202026-495.pdf">read the contract</a> &mdash; and from bookstore
-      correspondence quoted in <a href="CLAIMS.md">CLAIMS.md</a>.</p>
-    <p><a href="METHODOLOGY.md">How the verdict is computed</a> &middot;
+      correspondence quoted in <a data-link="claims" href="CLAIMS.md">CLAIMS.md</a>.</p>
+    <p><a data-link="methodology" href="METHODOLOGY.md">How the verdict is computed</a> &middot;
       <a id="repo-link" href="https://github.com/stonestephenson/textbookfinder">Open source</a> &middot;
       No analytics, no tracking, no accounts.</p>
   </footer>

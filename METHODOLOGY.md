@@ -15,8 +15,8 @@ bundle cost = (units you told us you're registered for) × $21.00
 
 $21.00/unit is the bookstore's stated Seawolf Bundle rate, confirmed in writing
 (CLAIMS.md #1). The tool does not add tax or fees to this number; your portal shows your exact
-charge. All money math is done in integer cents — there is no floating-point rounding anywhere
-in the comparison.
+charge. Entered prices are converted to integer cents on the way in and all comparison math is
+done in whole cents, so totals never drift by a penny.
 
 **Buy-it-yourself total** — the sum of prices **you** typed in:
 
@@ -41,7 +41,8 @@ Let `difference = bundle cost − buy total`.
 | Some items not yet priced | **No verdict** — with one exception below |
 | Some items not yet priced, but the priced ones *already* exceed bundle cost by more than $21.00 | **Stay in**, early — adding more prices can only make buying more expensive, so this conclusion is safe before all prices are in. The reverse is never true: the tool will not recommend opting out until every item is priced or explicitly skipped |
 | Items marked "couldn't find it" | They are excluded from the buy total and the verdict says so ("based on N of M items"). A skipped item means the buy total is an **under**estimate, so any opt-out verdict is shown with an explicit caveat |
-| Cart shows no items | Buying nothing costs $0.00, so the verdict is the full bundle cost — with the reminder that materials can still be added later in the term |
+| **Every** item marked "couldn't find it" | **No verdict.** With zero entered prices there is no basis for a comparison, and the tool refuses to invent one |
+| Cart shows no items | Buying nothing costs $0.00, so the verdict states the full bundle cost — with the reminder that materials can still be added later. (The close band does not apply here: it exists to absorb noise in entered prices, and an empty cart involves none) |
 
 The **$21.00 "close" band** equals one unit's bundle price. It is a deliberate refusal to
 over-claim precision: within that band, the price difference is smaller than the noise in the
