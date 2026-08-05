@@ -78,12 +78,19 @@ function adoptItems(rawItems) {
   });
 }
 
+const STEP_ORDER = ['input', 'confirm', 'verdict'];
+
 function showStep(step) {
   state.step = step;
   $('step-input').hidden = step !== 'input';
   $('step-confirm').hidden = step !== 'confirm';
   $('step-verdict').hidden = step !== 'verdict';
-  if (step !== 'input') $('step-confirm').scrollIntoView?.({ behavior: 'smooth' });
+  document.querySelectorAll('.stepper .snode').forEach((n) => {
+    const i = STEP_ORDER.indexOf(n.dataset.step);
+    n.classList.toggle('active', n.dataset.step === step);
+    n.classList.toggle('done', i > -1 && i < STEP_ORDER.indexOf(step));
+  });
+  if (step !== 'input') $('tool').scrollIntoView?.({ behavior: 'smooth' });
 }
 
 function showInputError(msg) {
@@ -365,13 +372,58 @@ function retailerLinks(item) {
     .join('');
 }
 
+const ICONS = {
+  good: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8.25"/><path d="M6.5 10.5l2.4 2.4 4.6-5.2"/></svg>',
+  info: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="8.25"/><path d="M10 9.25v4.5"/><path d="M10 6.1v.1"/></svg>',
+  warn: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.2L18 16.8H2z"/><path d="M10 8.4v3.4"/><path d="M10 14.4v.1"/></svg>',
+};
+
+function formatDeadline(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+function renderCompareFigure(v) {
+  const el = $('compare-figure');
+  const noPrices = v.pricedCount === 0;
+  const maxVal = Math.max(v.bundleCost, v.knownBuyTotal, 1);
+  const w = (x) => Math.max(2, Math.round((x / maxVal) * 100));
+
+  let buyLabel = 'Buying it yourself';
+  let buyVal;
+  let buyTrack;
+  if (state.items.length === 0) {
+    buyLabel = 'Buying nothing (your list shows no items)';
+    buyVal = fmt(0);
+    buyTrack = '<div class="compare-track t-buy" style="width:2%"></div>';
+  } else if (noPrices) {
+    buyVal = v.complete ? 'nothing to compare yet' : 'type prices below';
+    buyTrack = '<div class="compare-track t-empty"></div>';
+  } else {
+    if (!v.complete || v.skippedCount > 0) buyLabel += ` (${v.pricedCount} of ${v.totalCount} priced)`;
+    buyVal = fmt(v.knownBuyTotal);
+    buyTrack = `<div class="compare-track t-buy" style="width:${w(v.knownBuyTotal)}%"></div>`;
+  }
+
+  el.innerHTML = `
+    <div class="compare-row">
+      <div class="compare-label"><span>Seawolf Bundle — ${state.units} units</span>
+        <span class="val">${fmt(v.bundleCost)}</span></div>
+      <div class="compare-track t-bundle" style="width:${w(v.bundleCost)}%"></div>
+    </div>
+    <div class="compare-row">
+      <div class="compare-label"><span>${esc(buyLabel)}</span><span class="val">${buyVal}</span></div>
+      ${buyTrack}
+    </div>
+    <p class="compare-caption">Built from the prices you enter — not a quote.</p>`;
+}
+
 function renderVerdict() {
   const units = state.units;
-  const bundleCost = Math.round(units * config.pricePerUnit * 100) / 100;
-  $('bundle-line').innerHTML = `The Seawolf Bundle for your <strong>${units} units</strong>:
-    ${units} × ${fmt(config.pricePerUnit)} = <strong>${fmt(bundleCost)}</strong>
-    <span class="muted small">(current rate, confirmed in writing by the bookstore, July 2026 —
-    see <a href="${esc(config.claimsUrl)}">sources</a>)</span>`;
+  $('bundle-line').innerHTML = `Using ${esc(config.term)}&rsquo;s published bundle rate of
+    ${fmt(config.pricePerUnit)} per unit (<a href="${esc(config.claimsUrl)}">sources</a>).`;
 
   const container = $('verdict-items');
   if (state.items.length === 0) {
@@ -401,7 +453,10 @@ function renderVerdict() {
   const deadlineEl = $('deadline-note');
   if (config.optOutDeadline) {
     deadlineEl.innerHTML = `<strong>Opt-out deadline for ${esc(config.term)}:
-      ${esc(config.optOutDeadline)}.</strong> The opt-out button is in your bookstore portal.`;
+      ${esc(formatDeadline(config.optOutDeadline))}</strong> — the last day of add/drop.
+      Whichever way your numbers point, decide before then. The switch lives on the
+      <a href="${esc(config.optOutUrl)}" target="_blank" rel="noopener noreferrer">official
+      opt-out page&nbsp;&#8599;</a>.`;
   } else {
     deadlineEl.innerHTML = `<strong>Mind the deadline.</strong> Opting out closes at SSU’s
       add/drop deadline for ${esc(config.term)} — check your bookstore portal or the academic
@@ -424,8 +479,8 @@ function updateVerdictPanel() {
 
   if (state.items.length === 0) {
     cls = 'v-optout';
-    headline = `Your cart shows nothing included — the bundle would cost you ${fmt(v.bundleCost)} for it.`;
-    detail = `<p class="verdict-detail">Buying nothing costs $0.00. Based on what your cart shows
+    headline = `Your list shows nothing included — the bundle would cost you ${fmt(v.bundleCost)} for it.`;
+    detail = `<p class="verdict-detail">Buying nothing costs $0.00. Based on what your list shows
       today, opting out saves you <strong>${fmt(v.difference)}</strong>. Materials can still be
       added later — see below.</p>`;
   } else if (v.recommendation === 'incomplete' && v.complete && v.pricedCount === 0) {
@@ -442,7 +497,7 @@ function updateVerdictPanel() {
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
     headline = `Buying on your own looks cheaper — by ${fmt(v.difference)}.`;
-    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items your cart shows,
+    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
       vs ${fmt(v.bundleCost)} for the bundle, ${basis}.</p>
       ${v.skippedCount > 0 ? `<p class="verdict-detail"><strong>Caveat:</strong> ${v.skippedCount}
       item(s) you couldn’t price aren’t counted — if they turn out to be expensive,
@@ -450,7 +505,7 @@ function updateVerdictPanel() {
   } else if (v.recommendation === 'stay_in') {
     cls = 'v-stayin';
     headline = `The bundle looks like the better deal — by ${fmt(Math.abs(v.difference))}.`;
-    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items your cart shows,
+    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
       vs ${fmt(v.bundleCost)} for the bundle, ${basis}. Staying in means doing nothing —
       you’re enrolled by default.</p>`;
   } else {
@@ -468,11 +523,16 @@ function updateVerdictPanel() {
       the bundle can genuinely be the better deal — this tool will say so when your numbers show it.</p>`
     : '';
 
+  // Both decisive answers get the same check mark — the tool doesn't treat
+  // opting out as the "success" state; panel color alone distinguishes them.
+  const icon = cls === 'v-optout' || cls === 'v-stayin' ? ICONS.good
+    : cls === 'v-close' ? ICONS.warn : ICONS.info;
   panel.className = `verdict-panel ${cls}`;
-  panel.innerHTML = `<p class="verdict-headline">${headline}</p>${detail}${accessNote}
+  panel.innerHTML = `<p class="verdict-headline">${icon}<span>${headline}</span></p>${detail}${accessNote}
     <p class="muted small">Prices you type are your findings from the linked stores — the tool
     doesn’t verify them, and the verdict is only as good as your numbers.
     <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>`;
+  renderCompareFigure(v);
 }
 
 function wireVerdictStep() {
@@ -521,7 +581,22 @@ $('repo-link')?.setAttribute('href', config.repoUrl);
 document.querySelectorAll('[data-config="pricePerUnit"]').forEach((el) => {
   el.textContent = fmt(config.pricePerUnit);
 });
+document.querySelectorAll('[data-config="term"]').forEach((el) => {
+  el.textContent = config.term;
+});
 // Doc links point at GitHub's rendered views (raw .md serves as plain text
-// on most static hosts).
-document.querySelectorAll('[data-link="methodology"]').forEach((el) => el.setAttribute('href', config.methodologyUrl));
-document.querySelectorAll('[data-link="claims"]').forEach((el) => el.setAttribute('href', config.claimsUrl));
+// on most static hosts); bookstore links come from config so each term's
+// re-verification touches one file.
+const LINKS = {
+  methodology: config.methodologyUrl,
+  claims: config.claimsUrl,
+  'course-materials': config.courseMaterialsUrl,
+  'course-finder': config.courseFinderUrl,
+};
+Object.entries(LINKS).forEach(([key, url]) => {
+  document.querySelectorAll(`[data-link="${key}"]`).forEach((el) => el.setAttribute('href', url));
+});
+// After the CTA scrolls to the tool, put focus in the first field.
+$('start-btn')?.addEventListener('click', () => {
+  setTimeout(() => $('units-input')?.focus({ preventScroll: true }), 350);
+});

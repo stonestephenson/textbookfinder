@@ -3,36 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f2f6f5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f181b" media="(prefers-color-scheme: dark)">
   <title>Is the Seawolf Bundle worth it?</title>
-  <meta name="description" content="A calculator for Sonoma State students: compare the Seawolf Bundle against buying what your own bookstore cart shows. No login, no tracking.">
+  <meta name="description" content="SSU auto-enrolls every undergrad in a $21-per-unit textbook program. This free calculator shows the math for your classes — either way.">
+  <meta property="og:title" content="Is the Seawolf Bundle worth it?">
+  <meta property="og:description" content="A free calculator for SSU students: the bundle vs buying your books yourself. Every fact sourced.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f6b5c'/%3E%3Cpath d='M8 17l5 5 11-12' stroke='%23fff' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <header class="site-header">
+
+  <!-- ── LANDING ─────────────────────────────────────────────────────── -->
+  <header class="hero wrap">
+    <p class="eyebrow">For Sonoma State students &amp; families</p>
     <h1>Is the Seawolf Bundle worth it?</h1>
-    <p class="tagline">A calculator for SSU students. Not affiliated with SSU or Barnes&nbsp;&amp;&nbsp;Noble.</p>
+    <p class="lede">SSU automatically enrolls every undergraduate in its
+      <strong><span data-config="pricePerUnit">$21.00</span>-per-unit</strong> textbook program
+      &mdash; $315 a semester at a full 15-unit load. Nobody shows you the math for <em>your</em>
+      classes. This free calculator does, in a few minutes.</p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary btn-big" id="start-btn" href="#tool">Check my classes</a>
+      <span class="cta-note">Free &middot; no sign-up &middot; sometimes the answer is &ldquo;keep the bundle&rdquo;</span>
+    </div>
+
+    <figure class="exhibit" aria-label="Exhibit: a quote from the SSU bookstore portal">
+      <div class="exhibit-head"><span>SSU bookstore portal &middot; Fall 2026</span><span>Exhibit&nbsp;A</span></div>
+      <blockquote class="exhibit-quote">&ldquo;Your estimated savings on included materials is:
+        <span class="figure">$67.15</span>&rdquo;</blockquote>
+      <figcaption class="exhibit-note">What the portal told one student whose cart held a single
+        $11.08 book. The bundle would have cost him $210.00 &mdash; a
+        <strong>$198.92</strong> overpayment, presented as a $67 gain.
+        <a href="#receipts">See the receipts&nbsp;&darr;</a></figcaption>
+    </figure>
+
+    <div class="trust-strip">
+      <span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+        Built by an SSU student &mdash; not affiliated with SSU or Barnes&nbsp;&amp;&nbsp;Noble</span>
+      <span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+        Every fact sourced &mdash; <a href="contract/PRA%202026-495.pdf">read the contract</a></span>
+      <span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 5"/></svg>
+        No ads, no affiliate links &mdash; this site earns nothing either way</span>
+    </div>
   </header>
 
-  <main>
-    <!-- ── STEP 1: INPUT ─────────────────────────────────────────────── -->
+  <!-- ── HOW IT WORKS ────────────────────────────────────────────────── -->
+  <section class="how wrap" aria-label="How it works">
+    <h2>Three steps, a few minutes</h2>
+    <ol>
+      <li><span><strong>Grab your list.</strong> We send you to the SSU bookstore &mdash;
+        screenshot the materials shown for your courses.</span></li>
+      <li><span><strong>Check what we read.</strong> Fix anything wrong. Nothing counts until
+        you confirm it matches.</span></li>
+      <li><span><strong>See the math.</strong> The bundle vs buying it yourself &mdash; your
+        numbers decide, either way.</span></li>
+    </ol>
+  </section>
+
+  <!-- ── THE TOOL ────────────────────────────────────────────────────── -->
+  <main class="tool wrap" id="tool">
+    <div class="stepper" aria-hidden="true">
+      <div class="snode" data-step="input">1 &middot; Your cart</div>
+      <div class="snode" data-step="confirm">2 &middot; Check it</div>
+      <div class="snode" data-step="verdict">3 &middot; Your answer</div>
+    </div>
+
+    <!-- STEP 1: INPUT -->
     <section class="card" id="step-input">
-      <h2><span class="step-num">1</span> Show the tool your cart</h2>
-      <p class="lead">Open your bookstore&rsquo;s <strong>My Course Materials</strong> page and either
-        screenshot it or copy the text. Drop the screenshot or paste below &mdash; the tool reads
-        what&rsquo;s in <em>your</em> cart, you confirm it, and it does the math against the bundle price.</p>
+      <h2>Show the tool your cart</h2>
+      <p class="lead">Your bookstore cart already lists what&rsquo;s included for your courses.
+        Get a screenshot of it &mdash; here&rsquo;s the exact path:</p>
+
+      <ol class="tap-path">
+        <li><span><a class="btn" data-link="course-materials" href="https://sso.bncollege.com/bes-sp/bessso/saml/sonomaedu/aip/logon"
+          target="_blank" rel="noopener noreferrer">Open My Course Materials&nbsp;&#8599;</a><br>
+          <span class="muted small">You&rsquo;ll sign in on SSU&rsquo;s own page &mdash; this
+          site never sees your login.</span></span></li>
+        <li><span>Screenshot the list of materials for your courses.</span></li>
+        <li><span>Come back here and drop the screenshot below.</span></li>
+      </ol>
 
       <div class="units-row">
-        <label for="units-input">Units you&rsquo;re registered for this term</label>
+        <label for="units-input">Units you&rsquo;re registered for</label>
+        <p class="hint">It&rsquo;s on your class schedule, next to your course list.</p>
         <input type="number" id="units-input" inputmode="numeric" min="1" max="24" placeholder="e.g. 15">
       </div>
 
       <div id="drop-zone" class="drop-zone" tabindex="0" role="button"
            aria-label="Upload or paste a screenshot of your course materials page">
-        <p><strong>Drop a screenshot here</strong>, paste it (Ctrl/Cmd&#8209;V), or</p>
+        <p><strong>Drop your screenshot here</strong>, paste it (Ctrl/Cmd&#8209;V), or</p>
         <button type="button" class="btn" id="file-btn">Choose an image</button>
         <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
         <p class="muted small" id="parse-status" hidden></p>
       </div>
+
+      <p class="alt-inputs">No screenshot? Use the
+        <a data-link="course-finder" href="https://sonoma.bncollege.com/course-material/course-finder"
+           target="_blank" rel="noopener noreferrer">course finder</a> (no login) and paste the
+        text, or <a href="#" id="manual-entry-link">type your items by hand</a>.</p>
 
       <details id="text-details">
         <summary>Paste the page text instead</summary>
@@ -41,20 +112,19 @@
         <button type="button" class="btn btn-primary" id="parse-text-btn">Read my pasted text</button>
       </details>
 
-      <p class="muted small">No login, ever &mdash; this tool never asks for SSU credentials.
-        Pasted text is read entirely in your browser. Screenshots are sent once to a parsing
-        service (the Anthropic API) to read your item list &mdash; course, title, format, ISBN
-        &mdash; and this site never stores them. Or skip all that and
-        <a href="#" id="manual-entry-link">enter your items by hand</a>.</p>
+      <p class="privacy-note">No SSU login here, ever. Pasted text is read entirely in your
+        browser. Screenshots are sent once through this site&rsquo;s parser to the Anthropic API
+        to read your item list &mdash; course, title, format, ISBN &mdash; and this site never
+        stores them.</p>
 
       <div id="input-errors" class="notice notice-warn" hidden></div>
     </section>
 
-    <!-- ── STEP 2: CONFIRM ───────────────────────────────────────────── -->
+    <!-- STEP 2: CONFIRM -->
     <section class="card" id="step-confirm" hidden>
-      <h2><span class="step-num">2</span> Confirm what it read</h2>
-      <p class="lead">This is what the tool read from your cart. <strong>Fix anything that&rsquo;s
-        wrong</strong> &mdash; nothing is computed until you confirm it matches.</p>
+      <h2>Does this match your list?</h2>
+      <p class="lead">This is what the tool read. <strong>Fix anything that&rsquo;s wrong</strong>
+        &mdash; nothing is computed until you confirm it matches.</p>
       <div id="confirm-warnings"></div>
       <div id="items-list"></div>
       <button type="button" class="btn" id="add-item-btn">+ Add an item</button>
@@ -66,12 +136,13 @@
       </div>
     </section>
 
-    <!-- ── STEP 3: VERDICT ───────────────────────────────────────────── -->
+    <!-- STEP 3: VERDICT -->
     <section class="card" id="step-verdict" hidden>
-      <h2><span class="step-num">3</span> The verdict</h2>
-      <div id="bundle-line" class="bundle-line"></div>
-      <div id="verdict-items"></div>
+      <h2>Your answer</h2>
+      <div id="bundle-line" class="muted small"></div>
+      <div id="compare-figure" class="compare-figure" aria-label="Cost comparison"></div>
       <div id="verdict-panel"></div>
+      <div id="verdict-items"></div>
       <div class="notice" id="deadline-note"></div>
       <div class="notice">
         <strong>If your cart changes, so can this answer.</strong> The contract permits late
@@ -84,35 +155,46 @@
         <button type="button" class="btn" id="restart-btn">Start over</button>
       </div>
     </section>
+  </main>
 
-    <!-- ── EXPLAINER ─────────────────────────────────────────────────── -->
-    <section class="explainer" id="about">
-      <h2>What is the Seawolf Bundle?</h2>
-      <p>The Seawolf Bundle is SSU&rsquo;s version of Barnes &amp; Noble&rsquo;s
-        <em>First Day&reg; Complete</em> program. Every undergraduate is enrolled in it
-        automatically and charged <strong><span data-config="pricePerUnit">$21.00</span> per
-        unit</strong> for course-material access &mdash; rental-first, so most physical items must
-        be returned at term&rsquo;s end &mdash; unless they opt out before the add/drop
-        deadline.</p>
+  <!-- ── RECEIPTS ────────────────────────────────────────────────────── -->
+  <section class="receipts" id="receipts">
+    <div class="wrap">
+      <h2>Why trust this?</h2>
+      <p class="muted">Because you can check it. This site was built by an SSU student, is not
+        affiliated with SSU, Sonoma State Enterprises, or Barnes &amp; Noble, and earns nothing
+        from your decision either way. Every number below is sourced &mdash; most of them to the
+        bookstore contract itself, obtained through public records request PRA&nbsp;2026&#8209;495
+        (<a href="contract/PRA%202026-495.pdf">read all 56 pages</a>).</p>
+
+      <h3>What the Seawolf Bundle is</h3>
+      <p>SSU&rsquo;s version of Barnes &amp; Noble&rsquo;s <em>First Day&reg; Complete</em>
+        program. Every undergraduate is enrolled automatically and charged
+        <span data-config="pricePerUnit">$21.00</span> per unit for course-material access
+        &mdash; rental-first, so most physical items must be returned at term&rsquo;s end &mdash;
+        unless they opt out before the add/drop deadline.</p>
 
       <h3>The price is an average, not your cost</h3>
       <p>The per-unit price isn&rsquo;t based on what <em>your</em> materials cost. The contract
-        between Sonoma State Enterprises (SSE) and Barnes &amp; Noble sets a single flat rate that
-        it describes as &ldquo;an average price across all courses&rdquo; which applies
+        between Sonoma State Enterprises (SSE) and Barnes &amp; Noble sets a single flat rate:</p>
+      <blockquote>&ldquo;&hellip;an average price across all courses&rdquo; which applies
         &ldquo;regardless of how many or whether course materials are being used in a particular
-        course.&rdquo; If your classes need less than the average, you pay the average anyway.
-        That&rsquo;s the gap this calculator closes.</p>
+        course.&rdquo; <span class="cite">Amendment No.&nbsp;1 &sect;22(v)(1)</span></blockquote>
+      <p>If your classes need less than the average, you pay the average anyway. That&rsquo;s the
+        gap this calculator closes.</p>
 
       <h3>Who profits, and who sets the price</h3>
       <p>SSE &mdash; the SSU auxiliary that holds the bookstore contract &mdash; receives a
         commission of <strong>10% of gross course-material sales</strong>, a category the contract
-        expressly defines to include bundle revenue. The per-unit price is set each year by
-        agreement between SSE and Barnes &amp; Noble, no later than March, effective the following
-        fall. The agreement contains <strong>no cap on price increases</strong> and excludes no
-        programs: the student price has risen from $18.50 per unit in 2023 to
-        <span data-config="pricePerUnit">$21.00</span> now.</p>
+        expressly defines to include bundle revenue <span class="cite">&sect;11.1 as amended</span>.
+        The per-unit price is set each year by agreement between SSE and Barnes &amp; Noble, no
+        later than March, effective the following fall
+        <span class="cite">&sect;22(v)(5)</span>. The agreement contains <strong>no cap on price
+        increases</strong> and excludes no programs
+        <span class="cite">&sect;22(iii)(3)</span>: the student price has risen from $18.50 per
+        unit in 2023 to <span data-config="pricePerUnit">$21.00</span> now.</p>
 
-      <h3>Why this tool exists</h3>
+      <h3>The $67.15 story</h3>
       <p>In Fall 2026 the author&rsquo;s own cart showed exactly <strong>one</strong> included item
         across 10 registered units: a paperback selling online for about $11 new (July 2026).
         The bundle price for 10 units is $210.00. The portal nonetheless displayed:
@@ -122,34 +204,36 @@
         and suggested comparing options &mdash; adding, &ldquo;Since you only need 1 book for 10
         units, the Seawolf Bundle might not be the best option for you.&rdquo;</p>
       <p>This tool is that comparison &mdash; for every student, using your own cart as the source
-        of truth. Sometimes the answer really is to stay in: single-use access codes can&rsquo;t be
-        bought used, and if your courses require a few of them, the bundle can win. The tool will
-        tell you either way.</p>
+        of truth. Sometimes the answer really is to stay in: single-use access codes usually
+        can&rsquo;t be bought used, and if your courses require a few of them, the bundle can win.
+        The tool will tell you either way.</p>
 
       <h3>What this tool does and doesn&rsquo;t do</h3>
       <p>It reads what <em>your</em> cart shows, has you confirm it, and does arithmetic. It never
         looks up prices behind your back and never asserts a price it didn&rsquo;t source &mdash;
         the buy-it-yourself total is built from prices <em>you</em> find at the links it gives you.
-        The full computation is documented in <a data-link="methodology" href="METHODOLOGY.md">METHODOLOGY.md</a>, and
-        every factual claim on this page is sourced line-by-line in
-        <a data-link="claims" href="CLAIMS.md">CLAIMS.md</a>.</p>
-    </section>
-  </main>
+        The full computation is documented in
+        <a data-link="methodology" href="METHODOLOGY.md">the methodology</a>, and every factual
+        claim on this page is sourced line-by-line in
+        <a data-link="claims" href="CLAIMS.md">the claims ledger</a>.</p>
+    </div>
+  </section>
 
   <footer class="site-footer">
-    <p>Not affiliated with Sonoma State University, Sonoma State Enterprises, or
-      Barnes&nbsp;&amp;&nbsp;Noble. Built by an SSU student.</p>
-    <p>Facts on this page come from the SSE&ndash;Barnes &amp; Noble bookstore contract, obtained
-      through public records request PRA&nbsp;2026&#8209;495 &mdash;
-      <a href="contract/PRA%202026-495.pdf">read the contract</a> &mdash; and from bookstore
-      correspondence quoted in <a data-link="claims" href="CLAIMS.md">CLAIMS.md</a>.</p>
-    <p><a data-link="methodology" href="METHODOLOGY.md">How the verdict is computed</a> &middot;
-      <a id="repo-link" href="https://github.com/stonestephenson/textbookfinder">Open source</a> &middot;
-      No analytics, no tracking, no accounts.</p>
+    <div class="wrap">
+      <p>Not affiliated with Sonoma State University, Sonoma State Enterprises, or
+        Barnes&nbsp;&amp;&nbsp;Noble. Built by an SSU student. Figures configured for
+        <span data-config="term">Fall 2026</span>.</p>
+      <p><a data-link="methodology" href="METHODOLOGY.md">How the verdict is computed</a> &middot;
+        <a data-link="claims" href="CLAIMS.md">Every claim, sourced</a> &middot;
+        <a href="contract/PRA%202026-495.pdf">The contract (PDF)</a> &middot;
+        <a id="repo-link" href="https://github.com/stonestephenson/textbookfinder">Open source</a></p>
+      <p>No analytics, no tracking, no accounts.</p>
+    </div>
   </footer>
 
-  <noscript><p class="notice notice-warn">This calculator needs JavaScript to run. It works
-    entirely in your browser &mdash; no login, no tracking.</p></noscript>
+  <noscript><p class="notice notice-warn wrap">This calculator needs JavaScript to run.
+    No login, no tracking.</p></noscript>
   <script type="module" src="assets/app.js"></script>
 </body>
 </html>

@@ -21,7 +21,7 @@ change site copy or `assets/config.js`, update this file in the same commit.
 
 | # | Claim (as it appears in the UI) | Source |
 |---|---|---|
-| 1 | The Seawolf Bundle costs **$21.00 per unit** (used in all bundle-cost math and copy) | Bookstore email: "The Seawolf bundle is $21 per unit, so $210 if you are taking 10 units." |
+| 1 | The Seawolf Bundle costs **$21.00 per unit** (used in all bundle-cost math and copy) | SSU's official bundle site, seawolfbundle.sonoma.edu — "$21.00 per credit hour" (verified 2026-08-05); independently confirmed by bookstore email: "The Seawolf bundle is $21 per unit, so $210 if you are taking 10 units." |
 | 2 | The Seawolf Bundle is SSU's version of Barnes & Noble's **First Day® Complete** program | Contract, Amendment No. 1 (adds the First Day Complete program); program branding per SSU bookstore materials |
 | 3 | **Every undergraduate is enrolled automatically** and must opt out | Contract, Amendment No. 1 §22 (opt-out program structure; §22(v)(2) invoices SSE for credits of students who have *not opted out*); SSU bookstore program description |
 | 4 | The program is **rental-first — most physical items must be returned** at term's end | Contract, Amendment No. 1 §22 (rental-first program structure; §22(i)(4) sets fees for non-returned rentals) |
@@ -47,6 +47,14 @@ change site copy or `assets/config.js`, update this file in the same commit.
 | 24 | This site **never asks for SSU credentials**; pasted text is parsed **in the browser**; screenshots are sent once to a parsing service (the Anthropic API) and **this site never stores them**; **no analytics, no tracking, no accounts** | Code: `assets/parse-text.js` runs client-side; `api/parse.js` forwards the image to the Anthropic API for extraction and writes/logs nothing itself; no analytics scripts exist in this repository. (Handling by the Anthropic API is governed by Anthropic's own data policies — this site only vouches for what it controls.) |
 | 25 | This site is **not affiliated with SSU, Sonoma State Enterprises, or Barnes & Noble** and was **built by an SSU student** | Statement of authorship; this repository |
 | 26 | The contract documents were **obtained through public records request PRA 2026-495** | The request and production themselves; `contract/PRA 2026-495.pdf` |
+| 27 | The bundle costs **"$315 a semester at a full 15-unit load"** | Arithmetic: 15 × $21.00 (claim #1) = $315.00; SSU's bundle site states the same figure ("$315" for 15 credits, verified 2026-08-05) |
+| 28 | The documented case was **"a $198.92 overpayment, presented as a $67 gain"** | Arithmetic: $210.00 (claim #16) − $11.08 (claim #15) = $198.92; the "$67 gain" is the portal's $67.15 savings banner (claim #17) |
+| 29 | **Opt-out deadline for Fall 2026: Friday, September 4, 2026 — the last day of add/drop** | seawolfbundle.sonoma.edu (Fall 2026 opt-out window closes September 4, 2026) and registrar.sonoma.edu/academic-calendar (Fall 2026 add/drop deadline September 4, 2026); both verified 2026-08-05. Stored in `assets/config.js` with this source noted |
+| 30 | **"No ads, no affiliate links — this site earns nothing either way"** | Code: this repository contains no advertising, affiliate, referral, or monetization code of any kind |
+| 31 | **"You'll sign in on SSU's own page — this site never sees your login"** | Code + link target: the My Course Materials button links to the bookstore's SSO endpoint, which redirects to login.sonoma.edu; no credential field exists anywhere on this site |
+| 32 | **"Sometimes the answer is 'keep the bundle'"** | Code: `assets/verdict.js` returns `stay_in` whenever the user's numbers favor the bundle; see METHODOLOGY.md (access codes) |
+| 33 | The linked opt-out page is **"the official opt-out page"** | The URL in `assets/config.js` (`optOutUrl`) is identical to the opt-out link published on SSU's own bundle site, seawolfbundle.sonoma.edu (verified 2026-08-05) |
+| 34 | **"Nobody shows you the math for your classes"** | Portal screenshot: the enrollment screen displays a single "estimated savings" figure with no itemized calculation, no per-course comparison, and no method shown anywhere in the portal; bookstore email (claim #18): staff, asked for the calculation, could not provide it and referred to publisher pricing |
 
 ## What the site deliberately does not claim
 

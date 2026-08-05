@@ -47,6 +47,8 @@ The checklist, once per term (~20 minutes):
    `optOutDeadlineSource`. If unverified, leave both `null` — the site then tells students to
    check their portal, which is honest and safe.
 4. **`accessCodePatterns`** — add any new courseware platform names students report.
+   Also re-check the outbound links (`bookstoreUrl`, `courseMaterialsUrl`, `courseFinderUrl`,
+   `optOutUrl`) still resolve — bookstore platforms move URLs without notice.
 5. **Update [CLAIMS.md](CLAIMS.md)** — the entries for the price (claim #1) and any other value
    you changed, citing your new source. The site's credibility is this file.
 6. **Sanity-check the flow** — open the site, paste a sample cart, confirm, type a price, and

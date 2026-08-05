@@ -11,8 +11,9 @@ export const config = {
   term: 'Fall 2026',
 
   // Student-facing Seawolf Bundle price per unit, in dollars.
-  // Source: SSU bookstore staff, in writing (email to the author, July 2026).
-  // See CLAIMS.md #1.
+  // Source: SSU's official bundle site, seawolfbundle.sonoma.edu ("$21.00 per
+  // credit hour", verified 2026-08-05); independently confirmed in writing by
+  // bookstore staff (July 2026). See CLAIMS.md #1.
   pricePerUnit: 21.0,
 
   // "It's close" band for the verdict, in dollars: if bundle cost and
@@ -25,8 +26,17 @@ export const config = {
   // check their bookstore portal for the exact date.
   // NEVER enter a date you haven't verified for the current term, and record
   // where it came from in optOutDeadlineSource + CLAIMS.md.
-  optOutDeadline: null,
-  optOutDeadlineSource: null,
+  optOutDeadline: '2026-09-04',
+  optOutDeadlineSource: 'seawolfbundle.sonoma.edu (Fall 2026 opt-out window closes Sept 4, 2026) and registrar.sonoma.edu/academic-calendar (Fall 2026 add/drop deadline Sept 4, 2026); both verified 2026-08-05',
+
+  // Official outbound links, verified 2026-08-05. Re-verify each term — see
+  // README. courseMaterialsUrl is the bookstore's "see your registered
+  // courses" entry (routes through SSU's own sign-in, never this site).
+  bookstoreUrl: 'https://sonoma.bncollege.com/',
+  courseMaterialsUrl: 'https://sso.bncollege.com/bes-sp/bessso/saml/sonomaedu/aip/logon',
+  courseFinderUrl: 'https://sonoma.bncollege.com/course-material/course-finder',
+  optOutUrl: 'https://sso.bncollege.com/bes-sp/bessso/saml/sonomaedu/fdcopt/logon',
+  bundleInfoUrl: 'https://seawolfbundle.sonoma.edu/',
 
   // Endpoint that parses screenshots (see api/parse.js). Set to null to
   // disable screenshot parsing entirely — pasted text and manual entry keep

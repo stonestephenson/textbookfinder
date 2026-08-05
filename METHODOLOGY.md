@@ -15,8 +15,8 @@ bundle cost = (units you told us you're registered for) × $21.00
 
 $21.00/unit is the bookstore's stated Seawolf Bundle rate, confirmed in writing
 (CLAIMS.md #1). The tool does not add tax or fees to this number; your portal shows your exact
-charge. Entered prices are converted to integer cents on the way in and all comparison math is
-done in whole cents, so totals never drift by a penny.
+charge. All comparison math is done in whole cents — each entered price is rounded to the cent
+when totals are computed — so totals never drift by a penny.
 
 **Buy-it-yourself total** — the sum of prices **you** typed in:
 
