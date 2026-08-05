@@ -36,7 +36,12 @@ export function computeVerdict(items, units, config) {
     // Buy total can only grow as more prices come in, so "buying already costs
     // decisively more than the bundle" is safe to conclude early. "Opt out" is not.
     recommendation = -diffCents > closeCents ? 'stay_in' : 'incomplete';
-  } else if (totalCount > 0 && pricedCount === 0) {
+  } else if (totalCount === 0) {
+    // Empty cart: buying nothing costs $0.00 exactly. The close band exists to
+    // absorb noise in entered prices, and there are none — this is arithmetic,
+    // not a judgment call, even at 1 unit.
+    recommendation = 'opt_out';
+  } else if (pricedCount === 0) {
     // Every item skipped: there is no price data at all, so there is no basis
     // for any verdict. Refusing here is load-bearing — an "opt out" built on
     // zero entered prices would be exactly the over-claiming this tool exists

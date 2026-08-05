@@ -457,9 +457,9 @@ function updateVerdictPanel() {
     cls = 'v-close';
     headline = `It’s close — within ${fmt(config.closeThreshold)} either way.`;
     detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy vs ${fmt(v.bundleCost)}
-      for the bundle, ${basis}. At this margin, think about the non-price factors: bundle items are
-      mostly rentals you return; books you buy are yours to keep or resell; and materials can be
-      added to a course after you decide.</p>`;
+      for the bundle, ${basis}. At this margin, think about the non-price factors: most physical
+      bundle items are rentals you return; books you buy are yours to keep or resell; and materials
+      can be added to a course after you decide.</p>`;
   }
 
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0

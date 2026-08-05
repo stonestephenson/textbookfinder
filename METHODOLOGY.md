@@ -82,8 +82,9 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
   deadline, and why opting out is not a lockout (CLAIMS.md #20).
 - **Your opt-out deadline date.** Unless a verified date for the current term is configured, the
   site points you to your own portal for the exact date.
-- **The value of ownership vs rental.** Bundle items are mostly rentals you return; books you buy
-  are yours to keep or resell. The "it's close" verdict lists this; the arithmetic doesn't price it.
+- **The value of ownership vs rental.** Most physical bundle items are rentals you return; books
+  you buy are yours to keep or resell. The "it's close" verdict lists this; the arithmetic
+  doesn't price it.
 - **Financial aid interactions.** How bundle charges and out-of-pocket purchases interact with
   your aid package is between you and the financial aid office.
 
@@ -91,6 +92,8 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
 
 No accounts, no database, no analytics, no tracking. Pasted text never leaves your browser.
 Screenshots are sent once to the parsing endpoint, which forwards them to the Anthropic API to
-extract item titles and nothing else; this site stores neither the image nor the result.
+read the item list — course code, title, format, ISBN — and nothing else; this site stores
+neither the image nor the result. (Handling by the Anthropic API itself is governed by
+Anthropic's data policies; this site vouches only for what it controls.)
 The site's full source, including this file's history, is public in
 [the repository](https://github.com/stonestephenson/textbookfinder).
