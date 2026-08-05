@@ -1,0 +1,9 @@
+{
+  "name": "istheseawolfbundleworthit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test 'tests/*.test.js'",
+    "verify": "bash .claude/verify.sh"
+  }
+}
