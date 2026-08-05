@@ -1,0 +1,73 @@
+// ── SEMESTER CONFIG ──────────────────────────────────────────────────────────
+// This is the ONLY file that needs editing each semester. See README.md
+// ("How to update this each semester") for the checklist.
+//
+// RULE: every number and date in this file must have a source you could show
+// a skeptic. When you update a value, update its entry in CLAIMS.md too.
+// If you can't source a value, leave it null — the UI degrades honestly.
+
+export const config = {
+  // The term this deployment is configured for. Shown throughout the UI.
+  term: 'Fall 2026',
+
+  // Student-facing Seawolf Bundle price per unit, in dollars.
+  // Source: SSU bookstore staff, in writing (email to the author, July 2026).
+  // See CLAIMS.md #1.
+  pricePerUnit: 21.0,
+
+  // "It's close" band for the verdict, in dollars: if bundle cost and
+  // buy-it-yourself total are within this of each other, the tool refuses to
+  // call a winner. Default = one unit's bundle price. See METHODOLOGY.md.
+  closeThreshold: 21.0,
+
+  // Verified opt-out deadline for `term`, as 'YYYY-MM-DD', or null.
+  // While null the UI says "the add/drop deadline" and tells students to
+  // check their bookstore portal for the exact date.
+  // NEVER enter a date you haven't verified for the current term, and record
+  // where it came from in optOutDeadlineSource + CLAIMS.md.
+  optOutDeadline: null,
+  optOutDeadlineSource: null,
+
+  // Endpoint that parses screenshots (see api/parse.js). Set to null to
+  // disable screenshot parsing entirely — pasted text and manual entry keep
+  // working, entirely in the browser.
+  parseEndpoint: '/api/parse',
+
+  // Sanity bound for the units input.
+  maxUnits: 24,
+
+  // Case-insensitive patterns that mark an item as a single-use access code /
+  // courseware (can't be bought used). Extend as new platforms appear.
+  accessCodePatterns: [
+    'MyLab',
+    'Mastering', // Pearson Mastering Biology/Chemistry/Physics…
+    'MindTap',
+    'WebAssign',
+    'Cengage Unlimited',
+    'Connect', // McGraw Hill
+    'ALEKS',
+    'Revel',
+    'Achieve', // Macmillan
+    'LaunchPad',
+    'zyBooks',
+    'Top Hat',
+    'Sapling',
+    'Knewton',
+    'Hawkes',
+    'access code',
+    'access card',
+    'courseware',
+  ],
+
+  // Where "find the real price" links point. {q} is replaced with the ISBN
+  // when known, otherwise the title. The tool links out and shows YOUR
+  // entered price — it never asserts prices itself (METHODOLOGY.md).
+  retailers: [
+    { name: 'Amazon', searchUrl: 'https://www.amazon.com/s?k={q}' },
+    { name: 'AbeBooks', searchUrl: 'https://www.abebooks.com/servlet/SearchResults?kn={q}' },
+    { name: 'eBay', searchUrl: 'https://www.ebay.com/sch/i.html?_nkw={q}' },
+  ],
+
+  // Repository, for the footer.
+  repoUrl: 'https://github.com/stonestephenson/textbookfinder',
+};

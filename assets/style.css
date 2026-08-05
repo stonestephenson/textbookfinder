@@ -1,0 +1,233 @@
+/* Mobile-first. One column, big tap targets; students use this on a phone,
+   standing in line, deciding whether to press the red button. */
+
+:root {
+  --ink: #1b2733;
+  --ink-soft: #51616f;
+  --paper: #f5f7f9;
+  --card: #ffffff;
+  --line: #d8e0e6;
+  --accent: #0b5e8a;
+  --accent-ink: #ffffff;
+  --warn-bg: #fff7e6;
+  --warn-line: #e6c26e;
+  --good: #1a7a4a;
+  --bad: #a33333;
+  --flag-bg: #f3ecff;
+  --flag-ink: #5b3a9e;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.55;
+  font-size: 16px;
+}
+
+main, .site-header, .site-footer {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.site-header { padding-top: 28px; }
+.site-header h1 { margin: 0 0 4px; font-size: 1.7rem; line-height: 1.2; }
+.tagline { margin: 0 0 20px; color: var(--ink-soft); }
+
+h2 { font-size: 1.2rem; margin: 0 0 10px; }
+h3 { font-size: 1.05rem; margin: 22px 0 6px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  margin-bottom: 18px;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.95rem;
+  margin-right: 8px;
+}
+
+.lead { margin-top: 0; }
+.muted { color: var(--ink-soft); }
+.small { font-size: 0.85rem; }
+
+.units-row { margin: 14px 0; }
+.units-row label { display: block; font-weight: 600; margin-bottom: 4px; }
+.units-row input {
+  width: 110px;
+  font-size: 1.1rem;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.drop-zone {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+  margin: 14px 0;
+  cursor: pointer;
+}
+.drop-zone.dragover { border-color: var(--accent); background: #eef6fb; }
+.drop-zone p { margin: 6px 0; }
+
+.btn {
+  font-size: 1rem;
+  padding: 12px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.btn-danger-text { color: var(--bad); border: none; background: none; padding: 8px; }
+
+details { margin: 14px 0; }
+summary { cursor: pointer; font-weight: 600; }
+textarea {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  font-size: 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+.notice {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+  font-size: 0.92rem;
+  background: var(--paper);
+}
+.notice-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+
+/* Confirm step */
+.item-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 10px 0;
+}
+.item-card .field { margin-bottom: 10px; }
+.item-card label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 3px; }
+.item-card input[type="text"], .item-card select {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+.field.low-confidence input, .field.low-confidence select { border-color: var(--warn-line); background: var(--warn-bg); }
+.check-hint { color: #8a6d1d; font-weight: 600; }
+
+.badge {
+  display: inline-block;
+  background: var(--flag-bg);
+  color: var(--flag-ink);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.confirm-units { margin: 14px 0; }
+.confirm-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.confirm-actions .btn-primary { flex: 1; min-width: 200px; }
+
+/* Verdict step */
+.bundle-line {
+  font-size: 1.05rem;
+  border-left: 4px solid var(--accent);
+  padding: 8px 12px;
+  background: var(--paper);
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 14px;
+}
+
+.v-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin: 10px 0;
+}
+.v-item .v-title { font-weight: 600; }
+.v-item .v-meta { color: var(--ink-soft); font-size: 0.85rem; margin: 2px 0 8px; }
+.retailer-links { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.retailer-links a {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  text-decoration: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.price-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.price-row label { font-size: 0.9rem; font-weight: 600; }
+.price-row input[type="number"] {
+  width: 110px;
+  padding: 9px;
+  font-size: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.skip-label { font-size: 0.85rem; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 5px; }
+
+.verdict-panel {
+  border-radius: var(--radius);
+  padding: 14px;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+}
+.verdict-panel.v-optout { border-color: var(--good); background: #eefaf3; }
+.verdict-panel.v-stayin { border-color: var(--accent); background: #eef6fb; }
+.verdict-panel.v-close { border-color: var(--warn-line); background: var(--warn-bg); }
+.verdict-headline { font-size: 1.15rem; font-weight: 700; margin: 0 0 6px; }
+.verdict-detail { margin: 4px 0; }
+.totals-line { font-size: 0.95rem; margin: 10px 0 2px; }
+
+.explainer { padding: 8px 2px 4px; }
+.explainer h2 { margin-top: 10px; }
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 16px;
+  padding-bottom: 40px;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+.site-footer a { color: var(--accent); }
+
+@media (min-width: 700px) {
+  .site-header h1 { font-size: 2rem; }
+  .card { padding: 24px 22px; }
+}
