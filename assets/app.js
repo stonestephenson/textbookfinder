@@ -500,3 +500,8 @@ wireInputStep();
 wireConfirmStep();
 wireVerdictStep();
 $('repo-link')?.setAttribute('href', config.repoUrl);
+// Static copy that must track the semester config — see README, "How to
+// update this each semester". config.js is the single source for the rate.
+document.querySelectorAll('[data-config="pricePerUnit"]').forEach((el) => {
+  el.textContent = fmt(config.pricePerUnit);
+});
