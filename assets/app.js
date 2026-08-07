@@ -647,3 +647,33 @@ Object.entries(LINKS).forEach(([key, url]) => {
 $('start-btn')?.addEventListener('click', () => {
   setTimeout(() => $('units-input')?.focus({ preventScroll: true }), 350);
 });
+
+// Tailor the capture instruction to this device so nobody reads three sets of
+// steps. Detection is read locally from the browser and never transmitted.
+// iPads masquerade as Macs in Safari's default desktop mode — touch points
+// tell them apart. Unknown devices keep the generic instruction.
+function detectDevice() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPod|iPad/.test(ua) || (ua.includes('Mac') && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  if (navigator.maxTouchPoints > 1 || /Mobile/.test(ua)) return null;
+  return 'desktop';
+}
+
+const DEVICE_CAPTURE = {
+  ios: 'Take a screenshot, tap its preview, choose <strong>Full&nbsp;Page</strong>, and save it '
+    + 'as a PDF (it lands in your Files app) — one capture gets your whole list.',
+  android: 'Take a scrolling screenshot (<strong>Capture&nbsp;more</strong>) so the whole list '
+    + 'fits in one long image.',
+  desktop: 'Easiest on a computer: select the whole page (<strong>Ctrl/Cmd&#8209;A</strong>), '
+    + 'copy, and use <strong>Paste the page text</strong> below — it captures everything. '
+    + 'Screenshots work too.',
+};
+
+const device = detectDevice();
+if (device && DEVICE_CAPTURE[device]) {
+  const instr = $('capture-instruction');
+  if (instr) instr.innerHTML = DEVICE_CAPTURE[device];
+  const summary = $('capture-alternatives-summary');
+  if (summary) summary.textContent = 'On a different device?';
+}
