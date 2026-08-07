@@ -54,6 +54,7 @@ change site copy or `assets/config.js`, update this file in the same commit.
 | 31 | **"You'll sign in on SSU's own page — this site never sees your login"** | Code + link target: the My Course Materials button links to the bookstore's SSO endpoint, which redirects to login.sonoma.edu; no credential field exists anywhere on this site |
 | 32 | **"If the answer is 'keep the bundle,' we'll say that, loud and clear"** | Code: `assets/verdict.js` returns `stay_in` whenever the user's numbers favor the bundle, and the UI gives it the same check-mark treatment as opting out; see METHODOLOGY.md (access codes) |
 | 33 | The linked opt-out page is **"the official opt-out page"** | The URL in `assets/config.js` (`optOutUrl`) is identical to the opt-out link published on SSU's own bundle site, seawolfbundle.sonoma.edu (verified 2026-08-05) |
+| 35 | **"Unless you opt out, SSU bills you $X for it this semester"** (the hero's live figure) | Automatic enrollment with opt-out: claim #3; the dollar figure is arithmetic, the units you set × $21.00 (claim #1) |
 | 34 | *(retired from UI 2026-08-06 — kept for reference)* "Nobody shows you the math for your classes" | Portal screenshot: the enrollment screen displays a single "estimated savings" figure with no itemized calculation, no per-course comparison, and no method shown anywhere in the portal; bookstore email (claim #18): staff, asked for the calculation, could not provide it and referred to publisher pricing |
 
 ## What the site deliberately does not claim

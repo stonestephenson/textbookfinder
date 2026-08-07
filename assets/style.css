@@ -144,58 +144,59 @@ a:hover { color: var(--accent-deep); }
 }
 .hero .lede strong { color: var(--ink); }
 
-.cta-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin: 1.4rem 0 0.75rem; }
-.cta-note { font-size: 0.85rem; color: var(--ink-2); }
+/* The hero's working fragment: units in, bundle bill out, instantly. */
+.bill {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem;
+  margin: 1.4rem 0 0.4rem;
+  max-width: 30rem;
+}
+.bill-label { display: block; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.03em; color: var(--ink-2); margin-bottom: 0.55rem; }
+.bill-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.stepper-input { display: inline-flex; align-items: stretch; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.stepper-input input {
+  width: 3.4rem;
+  border: none;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: var(--sans);
+  background: var(--card);
+  color: var(--ink);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.stepper-input input::-webkit-outer-spin-button,
+.stepper-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.step-btn {
+  width: 2.75rem;
+  font-size: 1.35rem;
+  font-family: var(--sans);
+  border: none;
+  background: var(--card);
+  color: var(--accent-deep);
+  cursor: pointer;
+}
+.step-btn:hover { background: var(--accent-wash); }
+@media (prefers-color-scheme: dark) { .step-btn { color: var(--accent); } }
+.bill-out { margin: 0; font-size: 1rem; flex: 1; min-width: 12rem; }
+.bill-out strong { font-family: var(--serif); font-size: 1.5rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.trust-strip {
+.cta-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin: 1.2rem 0 0.75rem; }
+.cta-note { font-size: 0.85rem; color: var(--ink-2); max-width: 32em; }
+
+.trust-line {
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--line);
   font-size: 0.85rem;
   color: var(--ink-2);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 1.25rem;
-}
-.trust-strip span { display: inline-flex; align-items: center; gap: 0.4rem; }
-.trust-strip svg { flex: none; color: var(--accent); }
-
-/* ── How it works ─────────────────────────────────────────────────────── */
-
-.how { padding: 1.75rem 0 0.5rem; }
-.how ol {
-  list-style: none;
-  counter-reset: step;
-  display: grid;
-  gap: 0.65rem;
-  padding: 0;
-  margin: 1rem 0 0;
-}
-.how li {
-  counter-increment: step;
-  display: flex;
-  gap: 0.8rem;
-  align-items: baseline;
-  font-size: 0.95rem;
-  color: var(--ink-2);
-}
-.how li strong { color: var(--ink); font-weight: 600; }
-.how li::before {
-  content: counter(step);
-  flex: none;
-  width: 1.6rem; height: 1.6rem;
-  border-radius: 50%;
-  background: var(--accent-wash);
-  color: var(--accent-deep);
-  font-weight: 600;
-  font-size: 0.85rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(0.3rem);
-}
-@media (prefers-color-scheme: dark) {
-  .how li::before { color: var(--accent); }
+  max-width: 40em;
 }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
@@ -405,7 +406,19 @@ textarea {
 
 /* ── Verdict ──────────────────────────────────────────────────────────── */
 
-.compare-figure { margin: 1.2rem 0 0.4rem; display: grid; gap: 0.9rem; }
+/* The pinned instrument: visible from the first step, completed by the last. */
+.figure-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem 0.8rem;
+  margin-bottom: 1.1rem;
+}
+
+.price-progress { font-size: 0.9rem; font-weight: 600; color: var(--ink-2); margin: 1rem 0 0.2rem; }
+
+.compare-figure { margin: 0.2rem 0; display: grid; gap: 0.9rem; }
 .compare-row { display: grid; gap: 0.25rem; }
 .compare-label {
   font-size: 0.85rem;
@@ -454,8 +467,24 @@ textarea {
   border-radius: var(--radius);
   padding: 1rem;
   margin: 0.8rem 0;
+  position: relative;
 }
-.v-item .v-title { font-weight: 600; }
+.v-item.priced { border-color: var(--accent); }
+.v-item.skipped { opacity: 0.75; }
+.v-item .item-state {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+}
+.v-item.priced .item-state { display: inline-flex; }
+@media (prefers-color-scheme: dark) { .v-item .item-state { color: var(--accent); } }
+.v-item .v-title { font-weight: 600; padding-right: 4.5rem; }
 .v-item .v-meta { color: var(--ink-2); font-size: 0.85rem; margin: 0.1rem 0 0.6rem; }
 .retailer-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.6rem 0; }
 .retailer-links a {

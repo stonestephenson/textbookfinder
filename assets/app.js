@@ -170,7 +170,7 @@ async function handleCaptureFiles(fileList) {
   $('input-errors').hidden = true;
   if (!config.parseEndpoint) {
     showInputError('Screenshot parsing isn’t enabled on this deployment. '
-      + 'Paste the page text instead, or enter your items by hand — both work fully in your browser.');
+      + 'Paste the page text instead, or enter your items by hand. Both work fully in your browser.');
     return;
   }
 
@@ -178,7 +178,7 @@ async function handleCaptureFiles(fileList) {
   const pdf = files.find((f) => f.type === 'application/pdf');
   const images = files.filter((f) => f.type.startsWith('image/'));
   if (!pdf && images.length === 0) {
-    showInputError('Those files aren’t screenshots. Drop images (PNG or JPG) or a full-page PDF capture — or paste text instead.');
+    showInputError('Those files aren’t screenshots. Drop images (PNG or JPG) or a full-page PDF capture, or paste text instead.');
     return;
   }
   if (files.some((f) => f.size > 8 * 1024 * 1024)) {
@@ -201,7 +201,7 @@ async function handleCaptureFiles(fileList) {
       const parts = (await Promise.all(images.map(prepareImage))).flat();
       if (parts.length > MAX_PARTS) {
         showInputError(`That’s more than ${MAX_PARTS} screenshots’ worth of image. `
-          + 'For a list that long, select-all → copy on the page and use “Paste the page text” below — it captures everything at once.');
+          + 'For a list that long, select everything on the page, copy it, and use “Paste the page text” below. It captures everything at once.');
         return;
       }
       payload = {
@@ -222,7 +222,7 @@ async function handleCaptureFiles(fileList) {
 
     if (!res.ok || !body) {
       showInputError(body?.error
-        ?? 'The screenshot reader is unavailable right now. Paste the page text instead — that works entirely in your browser.');
+        ?? 'The screenshot reader is unavailable right now. Paste the page text instead. That works entirely in your browser.');
       return;
     }
     if (body.wrongPage) {
@@ -242,7 +242,7 @@ async function handleCaptureFiles(fileList) {
     renderConfirm();
     showStep('confirm');
   } catch {
-    showInputError('Couldn’t read that capture. Paste the page text instead — that works entirely in your browser.');
+    showInputError('Couldn’t read that capture. Paste the page text instead. That works entirely in your browser.');
   } finally {
     setParseBusy(false);
   }
@@ -316,7 +316,7 @@ function fieldHtml(item, idx, field, label, value, extra = '') {
   const low = item.confidence[field] === 'low';
   return `
     <div class="field ${low ? 'low-confidence' : ''}">
-      <label>${label}${low ? ' <span class="check-hint">— check this, the tool wasn’t sure</span>' : ''}</label>
+      <label>${label}${low ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
       <input type="text" data-idx="${idx}" data-field="${field}" value="${esc(value ?? '')}" ${extra}>
     </div>`;
 }
@@ -330,22 +330,22 @@ function renderConfirm() {
 
   if (state.items.length === 0) {
     list.innerHTML = `<div class="notice">Your cart shows <strong>no included materials</strong>.
-      That’s a real result — confirm below to see what the bundle costs anyway.</div>`;
+      That’s a real result. Confirm below to see what the bundle costs anyway.</div>`;
   } else {
     list.innerHTML = state.items.map((item, idx) => {
       const lowFormat = item.confidence.format === 'low';
       return `
       <div class="item-card" data-item-id="${esc(item.id)}">
-        ${item.isAccessCode ? '<span class="badge">Single-use access code — usually can’t be bought used</span>' : ''}
+        ${item.isAccessCode ? '<span class="badge">Single-use access code (usually can’t be bought used)</span>' : ''}
         ${fieldHtml(item, idx, 'title', 'Title', item.title)}
         ${fieldHtml(item, idx, 'courseCode', 'Course (optional)', item.courseCode, 'placeholder="e.g. CS 454"')}
         <div class="field ${lowFormat ? 'low-confidence' : ''}">
-          <label>Format${lowFormat ? ' <span class="check-hint">— check this, the tool wasn’t sure</span>' : ''}</label>
+          <label>Format${lowFormat ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
           <select data-idx="${idx}" data-field="format">
             ${Object.entries(FORMAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.format === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
         </div>
-        ${fieldHtml(item, idx, 'isbn', 'ISBN (optional — makes price links exact)', item.isbn)}
+        ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, makes price links exact)', item.isbn)}
         <button type="button" class="btn-danger-text" data-remove="${idx}">Remove this item</button>
       </div>`;
     }).join('');
@@ -394,13 +394,13 @@ function wireConfirmStep() {
 
     const unitsVal = Number($('confirm-units-input')?.value);
     if (!Number.isFinite(unitsVal) || unitsVal < 1 || unitsVal > config.maxUnits) {
-      errEl.textContent = `Enter your registered units, between 1 and ${config.maxUnits} — the bundle is billed per unit.`;
+      errEl.textContent = `Enter your registered units, between 1 and ${config.maxUnits}. The bundle is billed per unit.`;
       errEl.hidden = false;
       return;
     }
     const incomplete = state.items.filter((it) => !(it.title ?? '').trim() && !(it.isbn ?? '').trim());
     if (incomplete.length > 0) {
-      errEl.textContent = 'Every item needs at least a title or an ISBN — or remove the ones you don’t need.';
+      errEl.textContent = 'Every item needs at least a title or an ISBN. Or remove the ones you don’t need.';
       errEl.hidden = false;
       return;
     }
@@ -432,67 +432,88 @@ function formatDeadline(iso) {
   });
 }
 
+// The pinned instrument. Pass a verdict for live totals; pass null before the
+// user has confirmed anything and it shows the bundle bar with the buying bar
+// honestly unmeasured.
 function renderCompareFigure(v) {
   const el = $('compare-figure');
-  const noPrices = v.pricedCount === 0;
-  const maxVal = Math.max(v.bundleCost, v.knownBuyTotal, 1);
-  const w = (x) => Math.max(2, Math.round((x / maxVal) * 100));
+  const units = state.units ?? readUnits() ?? 15;
+  const bundleCost = v ? v.bundleCost : Math.round(units * config.pricePerUnit * 100) / 100;
 
   let buyLabel = 'Buying it yourself';
   let buyVal;
   let buyTrack;
-  if (state.items.length === 0) {
+  if (!v) {
+    buyVal = 'not measured yet';
+    buyTrack = '<div class="compare-track t-empty"></div>';
+  } else if (state.items.length === 0) {
     buyLabel = 'Buying nothing (your list shows no items)';
     buyVal = fmt(0);
     buyTrack = '<div class="compare-track t-buy" style="width:2%"></div>';
-  } else if (noPrices) {
+  } else if (v.pricedCount === 0) {
     buyVal = v.complete ? 'nothing to compare yet' : 'type prices below';
     buyTrack = '<div class="compare-track t-empty"></div>';
   } else {
     if (!v.complete || v.skippedCount > 0) buyLabel += ` (${v.pricedCount} of ${v.totalCount} priced)`;
     buyVal = fmt(v.knownBuyTotal);
+  }
+
+  const maxVal = Math.max(bundleCost, v?.knownBuyTotal ?? 0, 1);
+  const w = (x) => Math.max(2, Math.round((x / maxVal) * 100));
+  if (buyTrack === undefined) {
     buyTrack = `<div class="compare-track t-buy" style="width:${w(v.knownBuyTotal)}%"></div>`;
   }
 
   el.innerHTML = `
     <div class="compare-row">
-      <div class="compare-label"><span>Seawolf Bundle — ${state.units} units</span>
-        <span class="val">${fmt(v.bundleCost)}</span></div>
-      <div class="compare-track t-bundle" style="width:${w(v.bundleCost)}%"></div>
+      <div class="compare-label"><span>Seawolf Bundle, ${units} units</span>
+        <span class="val">${fmt(bundleCost)}</span></div>
+      <div class="compare-track t-bundle" style="width:${w(bundleCost)}%"></div>
     </div>
     <div class="compare-row">
       <div class="compare-label"><span>${esc(buyLabel)}</span><span class="val">${buyVal}</span></div>
       ${buyTrack}
     </div>
-    <p class="compare-caption">Built from the prices you enter — not a quote.</p>`;
+    <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
+      ${fmt(config.pricePerUnit)} per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
+      The buying bar comes from prices you enter, not a quote.</p>`;
+}
+
+function updatePriceProgress(v) {
+  const el = $('price-progress');
+  if (!el) return;
+  if (!v || state.items.length === 0) {
+    el.textContent = '';
+    return;
+  }
+  const done = v.pricedCount + v.skippedCount;
+  el.textContent = done >= v.totalCount
+    ? `All ${v.totalCount} item${v.totalCount === 1 ? '' : 's'} accounted for.`
+    : `${v.pricedCount} of ${v.totalCount} priced. Each price you add sharpens the answer.`;
 }
 
 function renderVerdict() {
-  const units = state.units;
-  $('bundle-line').innerHTML = `Using ${esc(config.term)}&rsquo;s published bundle rate of
-    ${fmt(config.pricePerUnit)} per unit (<a href="${esc(config.claimsUrl)}">sources</a>).`;
-
   const container = $('verdict-items');
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    container.innerHTML = `<p><strong>Find the real price of each item</strong> — each link searches
-      by ISBN when your cart showed one, otherwise by title. Type in the best price you find and the
-      totals update. Your numbers, your verdict.</p>`
+    container.innerHTML = `<p class="muted small">Tap a store, find your edition&rsquo;s best
+      price, type it in. Links search by ISBN when your list showed one, otherwise by title.</p>`
       + state.items.map((item, idx) => `
-      <div class="v-item">
+      <div class="v-item${item.userPrice != null ? ' priced' : ''}${item.skipped ? ' skipped' : ''}" data-item-idx="${idx}">
+        <span class="item-state">${ICONS.good} priced</span>
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
         <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format], item.isbn ? `ISBN ${item.isbn}` : null].filter(Boolean).join(' · '))}</div>
         ${item.isAccessCode ? `<div class="badge">Single-use access code</div>
-          <div class="v-meta">Access codes usually can’t be bought used — check the publisher’s
-          own price for new access and enter that.</div>` : ''}
+          <div class="v-meta">Access codes usually can&rsquo;t be bought used. Check the
+          publisher&rsquo;s own price for new access and enter that.</div>` : ''}
         <div class="retailer-links">${retailerLinks(item)}</div>
         <div class="price-row">
           <label for="price-${idx}">Best price you found</label>
           <input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
             inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}" ${item.skipped ? 'disabled' : ''}>
           <label class="skip-label"><input type="checkbox" data-skip-idx="${idx}" ${item.skipped ? 'checked' : ''}>
-            couldn’t find it</label>
+            couldn&rsquo;t find it</label>
         </div>
       </div>`).join('');
   }
@@ -500,14 +521,19 @@ function renderVerdict() {
   const deadlineEl = $('deadline-note');
   if (config.optOutDeadline) {
     deadlineEl.innerHTML = `<strong>Opt-out deadline for ${esc(config.term)}:
-      ${esc(formatDeadline(config.optOutDeadline))}</strong> — the last day of add/drop.
+      ${esc(formatDeadline(config.optOutDeadline))}</strong>, the last day of add/drop.
       Whichever way your numbers point, decide before then. The switch lives on the
       <a href="${esc(config.optOutUrl)}" target="_blank" rel="noopener noreferrer">official
-      opt-out page&nbsp;&#8599;</a>.`;
+      opt-out page&nbsp;&#8599;</a>. One more thing: your list can change after you decide
+      (the contract permits late faculty adoptions), so check it again near the deadline.
+      Opting out is not a lockout. If a course later needs something, you buy just that
+      item, then.`;
   } else {
-    deadlineEl.innerHTML = `<strong>Mind the deadline.</strong> Opting out closes at SSU’s
-      add/drop deadline for ${esc(config.term)} — check your bookstore portal or the academic
-      calendar for the exact date. The opt-out button is in your bookstore portal.`;
+    deadlineEl.innerHTML = `<strong>Mind the deadline.</strong> Opting out closes at SSU&rsquo;s
+      add/drop deadline for ${esc(config.term)}. Check your bookstore portal or the academic
+      calendar for the exact date. Your list can change after you decide (the contract permits
+      late faculty adoptions), so check it again near the deadline. Opting out is not a
+      lockout. If a course later needs something, you buy just that item, then.`;
   }
 
   updateVerdictPanel();
@@ -526,12 +552,12 @@ function updateVerdictPanel() {
 
   if (state.items.length === 0) {
     cls = 'v-optout';
-    headline = `Your list shows nothing included — the bundle would cost you ${fmt(v.bundleCost)} for it.`;
+    headline = `Your list shows nothing included. The bundle would cost you ${fmt(v.bundleCost)} for it.`;
     detail = `<p class="verdict-detail">Buying nothing costs $0.00. Based on what your list shows
       today, opting out saves you <strong>${fmt(v.difference)}</strong>. Materials can still be
-      added later — see below.</p>`;
+      added later, see below.</p>`;
   } else if (v.recommendation === 'incomplete' && v.complete && v.pricedCount === 0) {
-    headline = 'Every item is marked “couldn’t find it” — there’s nothing to compare yet.';
+    headline = 'Every item is marked “couldn’t find it”, so there’s nothing to compare yet.';
     detail = `<p class="verdict-detail">The bundle costs ${fmt(v.bundleCost)} for your units,
       but without at least one price you found, the tool has no basis for a verdict and won’t
       invent one. Try the search links again, or ask a librarian or classmate for help finding
@@ -540,24 +566,24 @@ function updateVerdictPanel() {
     headline = 'Enter the prices you find and the verdict appears here.';
     detail = `<p class="verdict-detail">So far: bundle ${fmt(v.bundleCost)} vs
       <strong>${fmt(v.knownBuyTotal)}</strong> ${basis}. The tool won’t call it until every
-      item has a price (or is marked “couldn’t find it”).</p>`;
+      item has a price or is marked “couldn’t find it”.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
-    headline = `Buying on your own looks cheaper — by ${fmt(v.difference)}.`;
+    headline = `Buying on your own looks cheaper. You’d keep ${fmt(v.difference)}.`;
     detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
       vs ${fmt(v.bundleCost)} for the bundle, ${basis}.</p>
       ${v.skippedCount > 0 ? `<p class="verdict-detail"><strong>Caveat:</strong> ${v.skippedCount}
-      item(s) you couldn’t price aren’t counted — if they turn out to be expensive,
+      item(s) you couldn’t price aren’t counted. If they turn out to be expensive,
       this could flip. Price them before deciding if you can.</p>` : ''}`;
   } else if (v.recommendation === 'stay_in') {
     cls = 'v-stayin';
-    headline = `The bundle looks like the better deal — by ${fmt(Math.abs(v.difference))}.`;
+    headline = `The bundle looks like the better deal. It saves you ${fmt(Math.abs(v.difference))}.`;
     detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
-      vs ${fmt(v.bundleCost)} for the bundle, ${basis}. Staying in means doing nothing —
-      you’re enrolled by default.</p>`;
+      vs ${fmt(v.bundleCost)} for the bundle, ${basis}. Staying in means doing nothing.
+      You’re enrolled by default.</p>`;
   } else {
     cls = 'v-close';
-    headline = `It’s close — within ${fmt(config.closeThreshold)} either way.`;
+    headline = `It’s close: within ${fmt(config.closeThreshold)} either way.`;
     detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy vs ${fmt(v.bundleCost)}
       for the bundle, ${basis}. At this margin, think about the non-price factors: most physical
       bundle items are rentals you return; books you buy are yours to keep or resell; and materials
@@ -567,19 +593,20 @@ function updateVerdictPanel() {
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0
     ? `<p class="verdict-detail">${v.accessCodeCount} of your items ${v.accessCodeCount === 1 ? 'is' : 'are'}
       a single-use access code, which usually can’t be bought used. If new codes are expensive,
-      the bundle can genuinely be the better deal — this tool will say so when your numbers show it.</p>`
+      the bundle can genuinely be the better deal, and this tool will say so when your numbers show it.</p>`
     : '';
 
-  // Both decisive answers get the same check mark — the tool doesn't treat
+  // Both decisive answers get the same check mark. The tool doesn't treat
   // opting out as the "success" state; panel color alone distinguishes them.
   const icon = cls === 'v-optout' || cls === 'v-stayin' ? ICONS.good
     : cls === 'v-close' ? ICONS.warn : ICONS.info;
   panel.className = `verdict-panel ${cls}`;
   panel.innerHTML = `<p class="verdict-headline">${icon}<span>${headline}</span></p>${detail}${accessNote}
-    <p class="muted small">Prices you type are your findings from the linked stores — the tool
+    <p class="muted small">Prices you type are your findings from the linked stores. The tool
     doesn’t verify them, and the verdict is only as good as your numbers.
     <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>`;
   renderCompareFigure(v);
+  updatePriceProgress(v);
 }
 
 function wireVerdictStep() {
@@ -599,6 +626,12 @@ function wireVerdictStep() {
     } else {
       return;
     }
+    const row = e.target.closest('.v-item');
+    if (row) {
+      const it = state.items[Number(row.dataset.itemIdx)];
+      row.classList.toggle('priced', it.userPrice != null && !it.skipped);
+      row.classList.toggle('skipped', Boolean(it.skipped));
+    }
     updateVerdictPanel();
   });
 
@@ -607,6 +640,7 @@ function wireVerdictStep() {
     showStep('confirm');
   });
   $('restart-btn').addEventListener('click', () => {
+    renderCompareFigure(null);
     state.items = [];
     state.units = null;
     state.warnings = [];
@@ -643,10 +677,24 @@ const LINKS = {
 Object.entries(LINKS).forEach(([key, url]) => {
   document.querySelectorAll(`[data-link="${key}"]`).forEach((el) => el.setAttribute('href', url));
 });
-// After the CTA scrolls to the tool, put focus in the first field.
-$('start-btn')?.addEventListener('click', () => {
-  setTimeout(() => $('units-input')?.focus({ preventScroll: true }), 350);
-});
+// Hero bill fragment: units in, bundle bill out, instantly. This is the
+// first working piece of the calculator a visitor touches.
+function updateBill() {
+  const units = readUnits() ?? 15;
+  const el = $('bill-amount');
+  if (el) el.textContent = fmt(Math.round(units * config.pricePerUnit * 100) / 100);
+  if (state.step !== 'verdict') renderCompareFigure(null);
+}
+function nudgeUnits(delta) {
+  const input = $('units-input');
+  const next = Math.min(config.maxUnits, Math.max(1, (Number(input.value) || 15) + delta));
+  input.value = next;
+  updateBill();
+}
+$('units-input')?.addEventListener('input', updateBill);
+$('units-minus')?.addEventListener('click', () => nudgeUnits(-1));
+$('units-plus')?.addEventListener('click', () => nudgeUnits(1));
+updateBill();
 
 // Tailor the capture instruction to this device so nobody reads three sets of
 // steps. Detection is read locally from the browser and never transmitted.
@@ -662,11 +710,11 @@ function detectDevice() {
 
 const DEVICE_CAPTURE = {
   ios: 'Take a screenshot, tap its preview, choose <strong>Full&nbsp;Page</strong>, and save it '
-    + 'as a PDF (it lands in your Files app) — one capture gets your whole list.',
+    + 'as a PDF (it lands in your Files app). One capture gets your whole list.',
   android: 'Take a scrolling screenshot (<strong>Capture&nbsp;more</strong>) so the whole list '
     + 'fits in one long image.',
   desktop: 'Easiest on a computer: select the whole page (<strong>Ctrl/Cmd&#8209;A</strong>), '
-    + 'copy, and use <strong>Paste the page text</strong> below — it captures everything. '
+    + 'copy, and use <strong>Paste the page text</strong> below. It captures everything. '
     + 'Screenshots work too.',
 };
 
