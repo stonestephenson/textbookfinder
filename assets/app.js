@@ -85,6 +85,7 @@ const STEP_ORDER = ['input', 'confirm', 'verdict'];
 
 function showStep(step) {
   state.step = step;
+  document.body.dataset.step = step;
   $('step-input').hidden = step !== 'input';
   $('step-confirm').hidden = step !== 'confirm';
   $('step-verdict').hidden = step !== 'verdict';
@@ -319,10 +320,11 @@ function wireInputStep() {
 
 function fieldHtml(item, idx, field, label, value, extra = '') {
   const low = item.confidence[field] === 'low';
+  const id = `f-${idx}-${field}`;
   return `
     <div class="field ${low ? 'low-confidence' : ''}">
-      <label>${label}${low ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
-      <input type="text" data-idx="${idx}" data-field="${field}" value="${esc(value ?? '')}" ${extra}>
+      <label for="${id}">${label}${low ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
+      <input type="text" id="${id}" data-idx="${idx}" data-field="${field}" value="${esc(value ?? '')}" ${extra}>
     </div>`;
 }
 
@@ -345,8 +347,8 @@ function renderConfirm() {
         ${fieldHtml(item, idx, 'title', 'Title', item.title)}
         ${fieldHtml(item, idx, 'courseCode', 'Course (optional)', item.courseCode, 'placeholder="e.g. CS 454"')}
         <div class="field ${lowFormat ? 'low-confidence' : ''}">
-          <label>Format${lowFormat ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
-          <select data-idx="${idx}" data-field="format">
+          <label for="f-${idx}-format">Format${lowFormat ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
+          <select id="f-${idx}-format" data-idx="${idx}" data-field="format">
             ${Object.entries(FORMAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.format === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
         </div>
@@ -485,19 +487,26 @@ function renderCompareFigure(v) {
     buyTrack = `<div class="compare-track t-buy" style="width:${w(v.knownBuyTotal)}%"></div>`;
   }
 
+  const deadlineLine = config.optOutDeadline
+    ? `Opt-out deadline: ${esc(formatDeadline(config.optOutDeadline))}`
+    : `Opt out by SSU&rsquo;s add/drop deadline for ${esc(config.term)}`;
+  const buyValIsMoney = /^\$/.test(String(buyVal));
+
   el.innerHTML = `
     <div class="compare-row">
-      <div class="compare-label"><span>Seawolf Bundle, ${units} units</span>
-        <span class="val">${fmt(bundleCost)}</span></div>
+      <div class="compare-label"><span>Seawolf Bundle, <span class="num">${units}</span> units</span>
+        <span class="val" data-audit="money">${fmt(bundleCost)}</span></div>
       <div class="compare-track t-bundle" style="width:${w(bundleCost)}%"></div>
     </div>
     <div class="compare-row">
-      <div class="compare-label"><span>${esc(buyLabel)}</span><span class="val">${buyVal}</span></div>
+      <div class="compare-label"><span>${esc(buyLabel)}</span>
+        <span class="val${buyValIsMoney ? '' : ' muted'}"${buyValIsMoney ? ' data-audit="money"' : ''}>${buyVal}</span></div>
       ${buyTrack}
     </div>
     <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
       ${fmt(config.pricePerUnit)} per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
-      The buying bar comes from prices you enter, not a quote.</p>`;
+      The buying bar comes from prices you enter, not a quote.</p>
+    <p class="figure-deadline">${deadlineLine}</p>`;
 }
 
 function updatePriceProgress(v) {
@@ -509,7 +518,7 @@ function updatePriceProgress(v) {
   }
   const done = v.pricedCount + v.skippedCount;
   el.textContent = done >= v.totalCount
-    ? `All ${v.totalCount} item${v.totalCount === 1 ? '' : 's'} accounted for.`
+    ? (v.totalCount === 1 ? 'Your item is accounted for.' : `All ${v.totalCount} items accounted for.`)
     : `${v.pricedCount} of ${v.totalCount} priced. Each price you add sharpens the answer.`;
 }
 
@@ -518,20 +527,20 @@ function renderVerdict() {
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    container.innerHTML = `<p class="muted small">Tap a store, find your edition&rsquo;s best
+    container.innerHTML = `<p class="muted small">Open a store, find your edition&rsquo;s best
       price, type it in. Links search by ISBN when your list showed one, otherwise by title.</p>`
       + state.items.map((item, idx) => `
       <div class="v-item${item.userPrice != null && !item.skipped ? ' priced' : ''}${item.skipped ? ' skipped' : ''}" data-item-idx="${idx}">
         <span class="item-state">${ICONS.good} priced</span>
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
-        <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format], item.isbn ? `ISBN ${item.isbn}` : null].filter(Boolean).join(' · '))}</div>
-        ${item.isAccessCode ? `<div class="badge">Single-use access code</div>
+        <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format]].filter(Boolean).join(' · '))}${item.isbn ? ` · ISBN <span class="num">${esc(item.isbn)}</span>` : ''}</div>
+        ${item.isAccessCode ? `<div class="badge" data-audit="access-flag">Single-use access code</div>
           <div class="v-meta">Access codes usually can&rsquo;t be bought used. Check the
           publisher&rsquo;s own price for new access and enter that.</div>` : ''}
         <div class="retailer-links">${retailerLinks(item)}</div>
         <div class="price-row">
           <label for="price-${idx}">Best price you found</label>
-          <input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
+          <span class="num price-currency">$</span><input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
             inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}" ${item.skipped ? 'disabled' : ''}>
           <label class="skip-label"><input type="checkbox" data-skip-idx="${idx}" ${item.skipped ? 'checked' : ''}>
             couldn&rsquo;t find it</label>
@@ -545,7 +554,7 @@ function renderVerdict() {
       ${esc(formatDeadline(config.optOutDeadline))}</strong>, the last day of add/drop.
       Whichever way your numbers point, decide before then. The switch lives on the
       <a href="${esc(config.optOutUrl)}" target="_blank" rel="noopener noreferrer">official
-      opt-out page&nbsp;&#8599;</a>. One more thing: your list can change after you decide
+      opt-out page&nbsp;&#8599;</a>. Your list can change after you decide
       (the contract permits late faculty adoptions), so check it again near the deadline.
       Opting out is not a lockout. If a course later needs something, you buy just that
       item, then.`;
@@ -557,10 +566,10 @@ function renderVerdict() {
       lockout. If a course later needs something, you buy just that item, then.`;
   }
 
-  updateVerdictPanel();
+  updateVerdictPanel(true);
 }
 
-function updateVerdictPanel() {
+function updateVerdictPanel(animate = false) {
   const v = computeVerdict(state.items, state.units, config);
   const panel = $('verdict-panel');
   const basis = v.basedOnAll
@@ -617,15 +626,44 @@ function updateVerdictPanel() {
       the bundle can genuinely be the better deal, and this tool will say so when your numbers show it.</p>`
     : '';
 
-  // Both decisive answers get the same check mark. The tool doesn't treat
-  // opting out as the "success" state; panel color alone distinguishes them.
-  const icon = cls === 'v-optout' || cls === 'v-stayin' ? ICONS.good
-    : cls === 'v-close' ? ICONS.warn : ICONS.info;
+  // The receipt, as a subtraction that actually parses: the bundle charge
+  // first, each of your priced items deducted from it with a signed amount,
+  // a double rule, then the labeled difference in the same money column.
+  // Every state gets this same treatment; the state classes carry no styling.
+  const bundleLine = `<div class="receipt-line">
+      <span class="r-name">Seawolf Bundle, <span class="num">${state.units}</span> units</span>
+      <span class="r-dots"></span>
+      <span class="r-amt" data-audit="money">${fmt(v.bundleCost)}</span></div>`;
+  const lineItems = state.items.map((item) => {
+    const name = esc(item.title || item.isbn || 'Untitled item');
+    const flag = item.isAccessCode
+      ? '<span class="r-flag" data-audit="access-flag">access code</span>' : '';
+    let amt;
+    if (item.skipped) amt = '<span class="r-amt r-note">couldn’t find it</span>';
+    else if (item.userPrice != null) amt = `<span class="r-amt" data-audit="money">&minus;&nbsp;${fmt(item.userPrice)}</span>`;
+    else amt = '<span class="r-amt r-note"></span>';
+    return `<div class="receipt-line"><span class="r-name">${name}</span>${flag}<span class="r-dots"></span>${amt}</div>`;
+  }).join('');
+  const diffSigned = v.recommendation === 'incomplete' ? null : v.difference;
+  const figText = diffSigned == null
+    ? '· · ·'
+    : `${diffSigned < 0 ? '−' : ''}${fmt(Math.abs(diffSigned))}`;
+  const figHtml = /\d/.test(figText) ? `<span data-audit="money">${figText}</span>` : figText;
+
   panel.className = `verdict-panel ${cls}`;
-  panel.innerHTML = `<p class="verdict-headline">${icon}<span>${headline}</span></p>${detail}${accessNote}
-    <p class="muted small">Prices you type are your findings from the linked stores. The tool
-    doesn’t verify them, and the verdict is only as good as your numbers.
-    <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>`;
+  panel.innerHTML = `
+    <div class="receipt-lines" data-audit-money-group="receipt">${bundleLine}${lineItems}</div>
+    <div class="receipt-total">
+      <div class="receipt-line r-total">
+        <span class="r-name">Difference</span>
+        <span class="r-dots"></span>
+        <div class="verdict-figure${animate ? ' settle' : ''}" data-audit="verdict-figure">${figHtml}</div>
+      </div>
+      <p class="verdict-headline">${headline}</p>${detail}${accessNote}
+      <p class="muted small">Prices you type are your findings from the linked stores. The tool
+      doesn’t verify them, and the verdict is only as good as your numbers.
+      <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>
+    </div>`;
   renderCompareFigure(v);
   updatePriceProgress(v);
 }

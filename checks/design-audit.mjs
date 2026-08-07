@@ -361,10 +361,12 @@ const AUDIT_FN = `
   }
 
   // Interactive target sizes.
+  // WCAG 2.5.8 exempts links that sit inline in a sentence; block-styled
+  // anchors (buttons, CTAs, retailer links) are still held to 44px.
   const targets = [...document.querySelectorAll('a[href], button, input, select, summary, [role="button"]')]
     .filter(vis)
     .filter((el) => !(el.type === 'checkbox' && el.closest('label')))
-    .filter((el) => !(el.tagName === 'A' && el.closest('p, blockquote, figcaption')));
+    .filter((el) => !(el.tagName === 'A' && getComputedStyle(el).display === 'inline'));
   out.smallTargets = targets.map((el) => {
     const r = el.getBoundingClientRect();
     return { what: el.tagName + '.' + String(el.className).slice(0, 30) + (el.id ? '#' + el.id : ''), w: Math.round(r.width), h: Math.round(r.height) };
@@ -537,6 +539,7 @@ async function main() {
       if (WANT_SHOTS) {
         for (const w of WIDTHS) {
           const { sessionId: s2 } = await newPage(cdp, base, w);
+          await setScheme(cdp, s2, 'light');
           await evalIn(cdp, s2, driveTo(screen));
           await screenshot(cdp, s2, path.join(ROOT, 'checks/shots', `${screen}-${w}.png`));
         }
@@ -558,6 +561,7 @@ async function main() {
       if (WANT_SHOTS && state === 'opt_out') {
         for (const w of WIDTHS) {
           const { sessionId: s2 } = await newPage(cdp, base, w);
+          await setScheme(cdp, s2, 'light');
           await evalIn(cdp, s2, driveTo('verdict', price));
           await screenshot(cdp, s2, path.join(ROOT, 'checks/shots', `verdict-${w}.png`));
         }
