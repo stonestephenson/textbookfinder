@@ -82,9 +82,24 @@
           target="_blank" rel="noopener noreferrer">Open My Course Materials&nbsp;&#8599;</a><br>
           <span class="muted small">You&rsquo;ll sign in on SSU&rsquo;s own page &mdash; this
           site never sees your login.</span></span></li>
-        <li><span>Screenshot the list of materials for your courses.</span></li>
-        <li><span>Come back here and drop the screenshot below.</span></li>
+        <li><span>Screenshot the list of materials for your courses &mdash; more than one
+          screenshot is fine if the list is long.</span></li>
+        <li><span>Come back here and drop the screenshot(s) below.</span></li>
       </ol>
+
+      <details>
+        <summary>Is your list longer than one screen?</summary>
+        <ul class="small" style="margin: 0.6rem 0 0.2rem; padding-left: 1.2rem;">
+          <li><strong>iPhone:</strong> take a screenshot, tap the preview, choose
+            <em>Full&nbsp;Page</em>, and save it as a PDF &mdash; then upload that PDF here.</li>
+          <li><strong>Android:</strong> use your phone&rsquo;s scrolling screenshot
+            (<em>Capture&nbsp;more</em>) &mdash; one long image works here.</li>
+          <li><strong>Computer:</strong> easiest of all &mdash; select the whole page
+            (Ctrl/Cmd&#8209;A), copy, and use <em>Paste the page text</em> below. That captures
+            everything, free, without leaving your browser.</li>
+          <li>Or just take a few overlapping screenshots and drop them all in at once.</li>
+        </ul>
+      </details>
 
       <div class="units-row">
         <label for="units-input">Units you&rsquo;re registered for</label>
@@ -93,10 +108,11 @@
       </div>
 
       <div id="drop-zone" class="drop-zone" tabindex="0" role="button"
-           aria-label="Upload or paste a screenshot of your course materials page">
-        <p><strong>Drop your screenshot here</strong>, paste it (Ctrl/Cmd&#8209;V), or</p>
-        <button type="button" class="btn" id="file-btn">Choose an image</button>
-        <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+           aria-label="Upload or paste screenshots or a full-page PDF of your course materials page">
+        <p><strong>Drop your screenshot(s) here</strong>, paste one (Ctrl/Cmd&#8209;V), or</p>
+        <button type="button" class="btn" id="file-btn">Choose images or a PDF</button>
+        <input type="file" id="file-input" multiple
+          accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" hidden>
         <p class="muted small" id="parse-status" hidden></p>
       </div>
 
@@ -113,9 +129,9 @@
       </details>
 
       <p class="privacy-note">No SSU login here, ever. Pasted text is read entirely in your
-        browser. Screenshots are sent once through this site&rsquo;s parser to the Anthropic API
-        to read your item list &mdash; course, title, format, ISBN &mdash; and this site never
-        stores them.</p>
+        browser. Captures (screenshots or a full-page PDF) are sent once through this
+        site&rsquo;s parser to the Anthropic API to read your item list &mdash; course, title,
+        format, ISBN &mdash; and this site never stores them.</p>
 
       <div id="input-errors" class="notice notice-warn" hidden></div>
     </section>

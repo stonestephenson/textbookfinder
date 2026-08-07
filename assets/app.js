@@ -110,7 +110,7 @@ function readUnits() {
 function setParseBusy(busy, msg = '') {
   const el = $('parse-status');
   el.hidden = !busy && !msg;
-  el.textContent = busy ? 'Reading your screenshot…' : msg;
+  el.textContent = busy ? 'Reading your capture…' : msg;
 }
 
 // Downscale/re-encode large images before upload: the parse endpoint accepts
@@ -127,49 +127,96 @@ async function prepareImage(file) {
   const MAX_BYTES = 2_500_000;
   try {
     const bitmap = await createImageBitmap(file);
-    const longEdge = Math.max(bitmap.width, bitmap.height);
-    if (file.size <= MAX_BYTES && longEdge <= MAX_EDGE) {
+    const crop = (sy, sh) => {
+      const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, sh));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(sh * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, sy, bitmap.width, sh, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    };
+
+    // A scrolling/full-page capture downscaled whole becomes unreadable —
+    // slice very tall images into overlapping segments at full legibility.
+    const sliceH = bitmap.width * 2;
+    if (bitmap.height > sliceH * 1.4 && bitmap.height > 2200) {
+      const n = Math.min(4, Math.ceil(bitmap.height / sliceH));
+      const h = Math.ceil(bitmap.height / n);
+      const overlap = Math.round(h * 0.06); // items cut at a seam appear in both
+      const parts = [];
+      for (let i = 0; i < n; i += 1) {
+        const sy = Math.max(0, i * h - overlap);
+        parts.push(crop(sy, Math.min(h + overlap, bitmap.height - sy)));
+      }
       bitmap.close?.();
-      return await readAsDataUrl(file);
+      return parts;
     }
-    const scale = Math.min(1, MAX_EDGE / longEdge);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    if (file.size <= MAX_BYTES && Math.max(bitmap.width, bitmap.height) <= MAX_EDGE) {
+      bitmap.close?.();
+      return [await readAsDataUrl(file)];
+    }
+    const part = crop(0, bitmap.height);
     bitmap.close?.();
-    return canvas.toDataURL('image/jpeg', 0.85);
+    return [part];
   } catch {
-    return readAsDataUrl(file);
+    return [await readAsDataUrl(file)];
   }
 }
 
-async function handleImageFile(file) {
+const MAX_PARTS = 4;
+
+async function handleCaptureFiles(fileList) {
   $('input-errors').hidden = true;
   if (!config.parseEndpoint) {
     showInputError('Screenshot parsing isn’t enabled on this deployment. '
       + 'Paste the page text instead, or enter your items by hand — both work fully in your browser.');
     return;
   }
-  if (!file.type.startsWith('image/')) {
-    showInputError('That file isn’t an image. Drop a screenshot (PNG or JPG), or paste text instead.');
+
+  const files = [...fileList];
+  const pdf = files.find((f) => f.type === 'application/pdf');
+  const images = files.filter((f) => f.type.startsWith('image/'));
+  if (!pdf && images.length === 0) {
+    showInputError('Those files aren’t screenshots. Drop images (PNG or JPG) or a full-page PDF capture — or paste text instead.');
     return;
   }
-  if (file.size > 8 * 1024 * 1024) {
-    showInputError('That image is over 8 MB. Try a normal screenshot rather than a photo, or paste the text instead.');
+  if (files.some((f) => f.size > 8 * 1024 * 1024)) {
+    showInputError('One of those files is over 8 MB. Try normal screenshots rather than photos, or paste the text instead.');
     return;
   }
 
   setParseBusy(true);
   try {
-    const dataUrl = await prepareImage(file);
-    const [, mediaType, base64] = dataUrl.match(/^data:([^;]+);base64,(.+)$/) ?? [];
-    if (!base64) throw new Error('encode failed');
+    let payload;
+    if (pdf) {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('read failed'));
+        reader.readAsDataURL(pdf);
+      });
+      payload = { pdf: dataUrl.split(',')[1] };
+    } else {
+      const parts = (await Promise.all(images.map(prepareImage))).flat();
+      if (parts.length > MAX_PARTS) {
+        showInputError(`That’s more than ${MAX_PARTS} screenshots’ worth of image. `
+          + 'For a list that long, select-all → copy on the page and use “Paste the page text” below — it captures everything at once.');
+        return;
+      }
+      payload = {
+        images: parts.map((dataUrl) => {
+          const [, mediaType, data] = dataUrl.match(/^data:([^;]+);base64,(.+)$/) ?? [];
+          return { data, mediaType };
+        }),
+      };
+      if (payload.images.some((p) => !p.data)) throw new Error('encode failed');
+    }
 
     const res = await fetch(config.parseEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64, mediaType }),
+      body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => null);
 
@@ -179,13 +226,13 @@ async function handleImageFile(file) {
       return;
     }
     if (body.wrongPage) {
-      showInputError('That screenshot doesn’t look like a course materials page. '
-        + 'Open your bookstore’s My Course Materials page (the list of what’s included for your classes) and screenshot that.');
+      showInputError('That capture doesn’t look like a course materials page. '
+        + 'Open your bookstore’s My Course Materials page (the list of what’s included for your classes) and capture that.');
       return;
     }
     const items = adoptItems(body.items);
     if (items.length === 0) {
-      showInputError('Couldn’t find any course materials in that screenshot. '
+      showInputError('Couldn’t find any course materials in that capture. '
         + 'Try a tighter screenshot of the materials list, paste the text, or enter items by hand.');
       return;
     }
@@ -195,7 +242,7 @@ async function handleImageFile(file) {
     renderConfirm();
     showStep('confirm');
   } catch {
-    showInputError('Couldn’t read that screenshot. Paste the page text instead — that works entirely in your browser.');
+    showInputError('Couldn’t read that capture. Paste the page text instead — that works entirely in your browser.');
   } finally {
     setParseBusy(false);
   }
@@ -226,7 +273,7 @@ function wireInputStep() {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
   });
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) handleImageFile(fileInput.files[0]);
+    if (fileInput.files.length > 0) handleCaptureFiles(fileInput.files);
     fileInput.value = '';
   });
 
@@ -239,8 +286,8 @@ function wireInputStep() {
     dropZone.classList.remove('dragover');
   }));
   dropZone.addEventListener('drop', (e) => {
-    const file = e.dataTransfer?.files?.[0];
-    if (file) handleImageFile(file);
+    const files = e.dataTransfer?.files;
+    if (files?.length) handleCaptureFiles(files);
   });
 
   document.addEventListener('paste', (e) => {
@@ -248,7 +295,7 @@ function wireInputStep() {
     if (e.target === $('text-input')) return;
     const file = [...(e.clipboardData?.items ?? [])]
       .find((it) => it.type.startsWith('image/'))?.getAsFile();
-    if (file) handleImageFile(file);
+    if (file) handleCaptureFiles([file]);
   });
 
   $('parse-text-btn').addEventListener('click', handlePastedText);

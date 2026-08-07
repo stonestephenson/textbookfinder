@@ -20,7 +20,8 @@ import Anthropic from '@anthropic-ai/sdk';
 const MODEL = process.env.PARSE_MODEL || 'claude-haiku-4-5';
 
 const ALLOWED_MEDIA_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-const MAX_BASE64_LENGTH = 4 * 1024 * 1024; // ~3MB image; client downscales first
+const MAX_BASE64_LENGTH = 4 * 1024 * 1024; // combined, ~3MB binary; client downscales first
+const MAX_IMAGES = 4;
 
 // Mirrors the client's ParseResult shape (assets/app.js adoptItems()).
 const RESULT_SCHEMA = {
@@ -61,7 +62,7 @@ const RESULT_SCHEMA = {
   },
 };
 
-const EXTRACTION_PROMPT = `This is a screenshot a college student took of their campus bookstore's course materials page (their own cart of included/required items for their registered courses).
+const EXTRACTION_PROMPT = `This is a capture a college student took of their campus bookstore's course materials page (their own cart of included/required items for their registered courses). It may arrive as several screenshots or slices of one long page: they can overlap, and an item cut off at the edge of one slice usually appears whole in the next — merge everything and report each distinct item exactly once.
 
 Extract every course material item that is actually visible. Rules:
 - Report ONLY what you can read in the image. Never invent or complete an ISBN — if it isn't fully legible, set isbn to null and mark its confidence "low". A wrong ISBN is worse than no ISBN.
@@ -71,10 +72,10 @@ Extract every course material item that is actually visible. Rules:
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
 - Use warnings for anything the student should know (e.g. "the list appears cut off — there may be more items below").`;
 
-// The swappable model call: image in, ParseResult out. The request shape
-// deliberately uses only parameters valid on every current Claude model
+// The swappable model call: capture blocks in, ParseResult out. The request
+// shape deliberately uses only parameters valid on every current Claude model
 // (Haiku through Opus), so PARSE_MODEL can point anywhere without code edits.
-async function extractItems(imageBase64, mediaType) {
+async function extractItems(captureBlocks) {
   const client = new Anthropic();
 
   const response = await client.messages.create({
@@ -85,7 +86,7 @@ async function extractItems(imageBase64, mediaType) {
       {
         role: 'user',
         content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+          ...captureBlocks,
           { type: 'text', text: EXTRACTION_PROMPT },
         ],
       },
@@ -135,22 +136,55 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { image, mediaType } = req.body ?? {};
-  if (typeof image !== 'string' || image.length === 0) {
-    res.status(400).json({ error: 'Missing image data.' });
-    return;
-  }
-  if (image.length > MAX_BASE64_LENGTH) {
-    res.status(413).json({ error: 'Image too large. Try a normal screenshot rather than a photo.' });
-    return;
-  }
-  if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) {
-    res.status(400).json({ error: 'Unsupported image type. Use PNG, JPEG, WebP, or GIF.' });
-    return;
+  // Accepted payloads: { images: [{data, mediaType}, ...] } (1–4 screenshots
+  // or slices of one long capture), { pdf } (a full-page capture — what iOS
+  // "Full Page" screenshots and desktop print-to-PDF produce), or the legacy
+  // single { image, mediaType }.
+  const body = req.body ?? {};
+  const images = Array.isArray(body.images)
+    ? body.images
+    : (typeof body.image === 'string' ? [{ data: body.image, mediaType: body.mediaType }] : []);
+
+  let captureBlocks;
+  if (typeof body.pdf === 'string' && body.pdf.length > 0) {
+    if (body.pdf.length > MAX_BASE64_LENGTH) {
+      res.status(413).json({ error: 'That PDF is too large. Try screenshots of the list instead, or paste the text.' });
+      return;
+    }
+    captureBlocks = [{
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: body.pdf },
+    }];
+  } else {
+    if (images.length === 0) {
+      res.status(400).json({ error: 'Missing capture data.' });
+      return;
+    }
+    if (images.length > MAX_IMAGES) {
+      res.status(400).json({ error: `At most ${MAX_IMAGES} screenshots per request. For a longer list, paste the page text instead.` });
+      return;
+    }
+    const total = images.reduce((n, i) => n + (typeof i?.data === 'string' ? i.data.length : 0), 0);
+    if (total === 0 || images.some((i) => typeof i?.data !== 'string' || i.data.length === 0)) {
+      res.status(400).json({ error: 'Missing capture data.' });
+      return;
+    }
+    if (total > MAX_BASE64_LENGTH) {
+      res.status(413).json({ error: 'Those images are too large together. Try normal screenshots rather than photos, or paste the text.' });
+      return;
+    }
+    if (images.some((i) => !ALLOWED_MEDIA_TYPES.includes(i.mediaType))) {
+      res.status(400).json({ error: 'Unsupported image type. Use PNG, JPEG, WebP, or GIF.' });
+      return;
+    }
+    captureBlocks = images.map((i) => ({
+      type: 'image',
+      source: { type: 'base64', media_type: i.mediaType, data: i.data },
+    }));
   }
 
   try {
-    const result = await extractItems(image, mediaType);
+    const result = await extractItems(captureBlocks);
     if (result.error) {
       res.status(422).json({ error: result.error });
       return;

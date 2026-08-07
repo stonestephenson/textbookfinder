@@ -60,9 +60,10 @@ not a campaign: whichever number is lower wins.
 
 ## What the tool parses, and why you confirm it
 
-Input is your own bookstore course-materials page — a screenshot (read by a vision model on the
-server) or pasted text (parsed entirely in your browser by deterministic rules). Parsing is
-imperfect by nature, so:
+Input is your own bookstore course-materials page — one or more screenshots or a full-page PDF
+capture (read by a vision model on the server, which merges overlapping captures), or pasted
+text (parsed entirely in your browser by deterministic rules). Parsing is imperfect by nature,
+so:
 
 - **Nothing is computed until you confirm the parsed list.** Every field is editable.
 - Fields the parser wasn't sure about are highlighted for your attention rather than guessed at.
@@ -91,9 +92,9 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
 ## Data handling
 
 No accounts, no database, no analytics, no tracking. Pasted text never leaves your browser.
-Screenshots are sent once to the parsing endpoint, which forwards them to the Anthropic API to
-read the item list — course code, title, format, ISBN — and nothing else; this site stores
-neither the image nor the result. (Handling by the Anthropic API itself is governed by
+Captures (screenshots or a full-page PDF) are sent once to the parsing endpoint, which forwards
+them to the Anthropic API to read the item list — course code, title, format, ISBN — and nothing
+else; this site stores neither the capture nor the result. (Handling by the Anthropic API itself is governed by
 Anthropic's data policies; this site vouches only for what it controls.)
 The site's full source, including this file's history, is public in
 [the repository](https://github.com/stonestephenson/textbookfinder).
