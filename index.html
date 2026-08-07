@@ -22,7 +22,8 @@
     <h1>Is the Seawolf Bundle worth it?</h1>
     <p class="lede">SSU automatically enrolls every undergraduate in its
       <strong><span data-config="pricePerUnit">$21.00</span>-per-unit</strong> textbook program,
-      a whopping $315 a semester at a full 15-unit load. But is this actually a good deal?
+      a whopping <span data-config="fullLoad15">$315</span> a semester at a full 15-unit load.
+      But is this actually a good deal?
       Is there a better option? We do the math, so you don&rsquo;t have to.</p>
 
     <div class="bill" aria-label="Your bundle bill">
@@ -33,7 +34,7 @@
           <input type="number" id="units-input" inputmode="numeric" min="1" max="24" value="15">
           <button type="button" class="step-btn" id="units-plus" aria-label="One unit more">+</button>
         </div>
-        <p class="bill-out">Unless you opt out, SSU bills you
+        <p class="bill-out" id="bill-out">Unless you opt out, SSU bills you
           <strong id="bill-amount">$315.00</strong> for it this semester.</p>
       </div>
     </div>
@@ -178,8 +179,8 @@
         The per-unit price is set each year by agreement between SSE and Barnes &amp; Noble, no
         later than March, effective the following fall
         <span class="cite">&sect;22(v)(5)</span>. The agreement contains <strong>no cap on price
-        increases</strong> and excludes no programs
-        <span class="cite">&sect;22(iii)(3)</span>: the student price has risen from $18.50 per
+        increases</strong> (none appears anywhere in the 56-page production) and excludes no
+        programs <span class="cite">&sect;22(iii)(3)</span>: the student price has risen from $18.50 per
         unit in 2023 to <span data-config="pricePerUnit">$21.00</span> now.</p>
 
       <h3>The $67.15 story</h3>

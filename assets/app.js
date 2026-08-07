@@ -16,6 +16,9 @@ const state = {
 
 let nextManualId = 1;
 
+// The last valid hero units value. Falls back to 15, the default full load.
+let heroUnits = 15;
+
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -90,6 +93,8 @@ function showStep(step) {
     n.classList.toggle('active', n.dataset.step === step);
     n.classList.toggle('done', i > -1 && i < STEP_ORDER.indexOf(step));
   });
+  // Off the verdict step, the figure returns to its honest unmeasured state.
+  if (step !== 'verdict') renderCompareFigure(null);
   if (step !== 'input') $('tool').scrollIntoView?.({ behavior: 'smooth' });
 }
 
@@ -386,6 +391,11 @@ function wireConfirmStep() {
     renderConfirm();
   });
 
+  // Keep the pinned figure agreeing with the confirm-step units field live.
+  $('confirm-units-row').addEventListener('input', (e) => {
+    if (e.target.id === 'confirm-units-input') renderCompareFigure(null);
+  });
+
   $('back-btn').addEventListener('click', () => showStep('input'));
 
   $('confirm-btn').addEventListener('click', () => {
@@ -432,12 +442,23 @@ function formatDeadline(iso) {
   });
 }
 
+// Whatever units value the user can currently see and edit: the confirm-step
+// field while confirming, otherwise the hero stepper. Keeps the pinned figure
+// agreeing with the input next to it instead of a stale snapshot.
+function liveUnits() {
+  if (state.step === 'confirm') {
+    const v = Number($('confirm-units-input')?.value);
+    if (Number.isFinite(v) && v >= 1 && v <= config.maxUnits) return v;
+  }
+  return readUnits() ?? state.units ?? heroUnits;
+}
+
 // The pinned instrument. Pass a verdict for live totals; pass null before the
 // user has confirmed anything and it shows the bundle bar with the buying bar
 // honestly unmeasured.
 function renderCompareFigure(v) {
   const el = $('compare-figure');
-  const units = state.units ?? readUnits() ?? 15;
+  const units = v ? state.units : liveUnits();
   const bundleCost = v ? v.bundleCost : Math.round(units * config.pricePerUnit * 100) / 100;
 
   let buyLabel = 'Buying it yourself';
@@ -500,7 +521,7 @@ function renderVerdict() {
     container.innerHTML = `<p class="muted small">Tap a store, find your edition&rsquo;s best
       price, type it in. Links search by ISBN when your list showed one, otherwise by title.</p>`
       + state.items.map((item, idx) => `
-      <div class="v-item${item.userPrice != null ? ' priced' : ''}${item.skipped ? ' skipped' : ''}" data-item-idx="${idx}">
+      <div class="v-item${item.userPrice != null && !item.skipped ? ' priced' : ''}${item.skipped ? ' skipped' : ''}" data-item-idx="${idx}">
         <span class="item-state">${ICONS.good} priced</span>
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
         <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format], item.isbn ? `ISBN ${item.isbn}` : null].filter(Boolean).join(' · '))}</div>
@@ -640,7 +661,6 @@ function wireVerdictStep() {
     showStep('confirm');
   });
   $('restart-btn').addEventListener('click', () => {
-    renderCompareFigure(null);
     state.items = [];
     state.units = null;
     state.warnings = [];
@@ -665,6 +685,9 @@ document.querySelectorAll('[data-config="pricePerUnit"]').forEach((el) => {
 document.querySelectorAll('[data-config="term"]').forEach((el) => {
   el.textContent = config.term;
 });
+document.querySelectorAll('[data-config="fullLoad15"]').forEach((el) => {
+  el.textContent = `$${(15 * config.pricePerUnit).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+});
 // Doc links point at GitHub's rendered views (raw .md serves as plain text
 // on most static hosts); bookstore links come from config so each term's
 // re-verification touches one file.
@@ -678,16 +701,26 @@ Object.entries(LINKS).forEach(([key, url]) => {
   document.querySelectorAll(`[data-link="${key}"]`).forEach((el) => el.setAttribute('href', url));
 });
 // Hero bill fragment: units in, bundle bill out, instantly. This is the
-// first working piece of the calculator a visitor touches.
+// first working piece of the calculator a visitor touches. An out-of-range
+// or empty field never fakes a dollar figure; it asks instead.
 function updateBill() {
-  const units = readUnits() ?? 15;
-  const el = $('bill-amount');
-  if (el) el.textContent = fmt(Math.round(units * config.pricePerUnit * 100) / 100);
+  const units = readUnits();
+  const out = $('bill-out');
+  if (out) {
+    if (units == null) {
+      out.innerHTML = `Enter units between 1 and ${config.maxUnits} to see your bill.`;
+    } else {
+      heroUnits = units;
+      const amount = fmt(Math.round(units * config.pricePerUnit * 100) / 100);
+      out.innerHTML = `Unless you opt out, SSU bills you
+        <strong id="bill-amount">${amount}</strong> for it this semester.`;
+    }
+  }
   if (state.step !== 'verdict') renderCompareFigure(null);
 }
 function nudgeUnits(delta) {
   const input = $('units-input');
-  const next = Math.min(config.maxUnits, Math.max(1, (Number(input.value) || 15) + delta));
+  const next = Math.min(config.maxUnits, Math.max(1, (Number(input.value) || heroUnits) + delta));
   input.value = next;
   updateBill();
 }

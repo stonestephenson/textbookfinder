@@ -97,7 +97,7 @@ async function extractItems(captureBlocks) {
     return { error: 'The parsing service declined to read this image. Try pasting the page text instead.' };
   }
   if (response.stop_reason === 'max_tokens') {
-    return { error: 'That screenshot has more content than the parser can handle at once. Try a tighter screenshot, or paste the text instead.' };
+    return { error: 'That capture has more content than the parser can handle at once. Try a tighter screenshot, or paste the text instead.' };
   }
 
   const text = response.content.find((b) => b.type === 'text')?.text;
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     res.status(503).json({
-      error: 'Screenshot parsing isn’t configured on this deployment. Paste the page text instead — that works entirely in your browser.',
+      error: 'Screenshot parsing isn’t configured on this deployment. Paste the page text instead. That works entirely in your browser.',
     });
     return;
   }
@@ -198,8 +198,8 @@ export default async function handler(req, res) {
     const status = err?.status === 429 ? 429 : 502;
     res.status(status).json({
       error: status === 429
-        ? 'The parser is busy right now — wait a moment and try again, or paste the page text instead.'
-        : 'The screenshot reader hit an error. Paste the page text instead — that works entirely in your browser.',
+        ? 'The parser is busy right now. Wait a moment and try again, or paste the page text instead.'
+        : 'The screenshot reader hit an error. Paste the page text instead. That works entirely in your browser.',
     });
   }
 }
