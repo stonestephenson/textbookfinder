@@ -558,12 +558,12 @@ async function main() {
         obs.verdict_states[state].brandingColors.push(...dark.brandingColors);
         await setScheme(cdp, sessionId, 'light');
       }
-      if (WANT_SHOTS && state === 'opt_out') {
+      if (WANT_SHOTS) {
         for (const w of WIDTHS) {
           const { sessionId: s2 } = await newPage(cdp, base, w);
           await setScheme(cdp, s2, 'light');
           await evalIn(cdp, s2, driveTo('verdict', price));
-          await screenshot(cdp, s2, path.join(ROOT, 'checks/shots', `verdict-${w}.png`));
+          await screenshot(cdp, s2, path.join(ROOT, 'checks/shots', `verdict-${state}-${w}.png`));
         }
       }
     }

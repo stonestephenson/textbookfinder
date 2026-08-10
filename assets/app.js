@@ -556,14 +556,14 @@ function renderVerdict() {
       <a href="${esc(config.optOutUrl)}" target="_blank" rel="noopener noreferrer">official
       opt-out page&nbsp;&#8599;</a>. Your list can change after you decide
       (the contract permits late faculty adoptions), so check it again near the deadline.
-      Opting out is not a lockout. If a course later needs something, you buy just that
-      item, then.`;
+      Opting out is not a lockout. If something new shows up on your list later, you buy
+      just that item, then.`;
   } else {
     deadlineEl.innerHTML = `<strong>Mind the deadline.</strong> Opting out closes at SSU&rsquo;s
       add/drop deadline for ${esc(config.term)}. Check your bookstore portal or the academic
       calendar for the exact date. Your list can change after you decide (the contract permits
       late faculty adoptions), so check it again near the deadline. Opting out is not a
-      lockout. If a course later needs something, you buy just that item, then.`;
+      lockout. If something new shows up on your list later, you buy just that item, then.`;
   }
 
   updateVerdictPanel(true);
@@ -582,39 +582,39 @@ function updateVerdictPanel(animate = false) {
 
   if (state.items.length === 0) {
     cls = 'v-optout';
-    headline = `Your list shows nothing included. The bundle would cost you ${fmt(v.bundleCost)} for it.`;
-    detail = `<p class="verdict-detail">Buying nothing costs $0.00. Based on what your list shows
-      today, opting out saves you <strong>${fmt(v.difference)}</strong>. Materials can still be
+    headline = `Your list shows nothing included. The bundle would cost you <span class="num">${fmt(v.bundleCost)}</span> for it.`;
+    detail = `<p class="verdict-detail">Buying nothing costs <span class="num">$0.00</span>. Based on what your list shows
+      today, opting out saves you <strong class="num">${fmt(v.difference)}</strong>. Materials can still be
       added later, see below.</p>`;
   } else if (v.recommendation === 'incomplete' && v.complete && v.pricedCount === 0) {
     headline = 'Every item is marked “couldn’t find it”, so there’s nothing to compare yet.';
-    detail = `<p class="verdict-detail">The bundle costs ${fmt(v.bundleCost)} for your units,
+    detail = `<p class="verdict-detail">The bundle costs <span class="num">${fmt(v.bundleCost)}</span> for your units,
       but without at least one price you found, the tool has no basis for a verdict and won’t
       invent one. Try the search links again, or ask a librarian or classmate for help finding
       a price.</p>`;
   } else if (v.recommendation === 'incomplete') {
     headline = 'Enter the prices you find and the verdict appears here.';
-    detail = `<p class="verdict-detail">So far: bundle ${fmt(v.bundleCost)} vs
-      <strong>${fmt(v.knownBuyTotal)}</strong> ${basis}. The tool won’t call it until every
+    detail = `<p class="verdict-detail">So far: bundle <span class="num">${fmt(v.bundleCost)}</span> vs
+      <span class="num">${fmt(v.knownBuyTotal)}</span> ${basis}. The tool won’t call it until every
       item has a price or is marked “couldn’t find it”.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
-    headline = `Buying on your own looks cheaper. You’d keep ${fmt(v.difference)}.`;
-    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
-      vs ${fmt(v.bundleCost)} for the bundle, ${basis}.</p>
+    headline = `Buying on your own looks cheaper. You’d keep <span class="num">${fmt(v.difference)}</span>.`;
+    detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy the items on your list,
+      vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}.</p>
       ${v.skippedCount > 0 ? `<p class="verdict-detail"><strong>Caveat:</strong> ${v.skippedCount}
       item(s) you couldn’t price aren’t counted. If they turn out to be expensive,
       this could flip. Price them before deciding if you can.</p>` : ''}`;
   } else if (v.recommendation === 'stay_in') {
     cls = 'v-stayin';
-    headline = `The bundle looks like the better deal. It saves you ${fmt(Math.abs(v.difference))}.`;
-    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy the items on your list,
-      vs ${fmt(v.bundleCost)} for the bundle, ${basis}. Staying in means doing nothing.
+    headline = `The bundle looks like the better deal. It saves you <span class="num">${fmt(Math.abs(v.difference))}</span>.`;
+    detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy the items on your list,
+      vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}. Staying in means doing nothing.
       You’re enrolled by default.</p>`;
   } else {
     cls = 'v-close';
-    headline = `It’s close: within ${fmt(config.closeThreshold)} either way.`;
-    detail = `<p class="verdict-detail">${fmt(v.knownBuyTotal)} to buy vs ${fmt(v.bundleCost)}
+    headline = `It’s close: within <span class="num">${fmt(config.closeThreshold)}</span> either way.`;
+    detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy vs <span class="num">${fmt(v.bundleCost)}</span>
       for the bundle, ${basis}. At this margin, think about the non-price factors: most physical
       bundle items are rentals you return; books you buy are yours to keep or resell; and materials
       can be added to a course after you decide.</p>`;
@@ -638,17 +638,22 @@ function updateVerdictPanel(animate = false) {
     const name = esc(item.title || item.isbn || 'Untitled item');
     const flag = item.isAccessCode
       ? '<span class="r-flag" data-audit="access-flag">access code</span>' : '';
-    let amt;
-    if (item.skipped) amt = '<span class="r-amt r-note">couldn’t find it</span>';
-    else if (item.userPrice != null) amt = `<span class="r-amt" data-audit="money">&minus;&nbsp;${fmt(item.userPrice)}</span>`;
-    else amt = '<span class="r-amt r-note"></span>';
+    // An unpriced line gets no leader and no amount cell: a leader pointing
+    // at nothing reads as a glitch, not as pending.
+    if (!item.skipped && item.userPrice == null) {
+      return `<div class="receipt-line"><span class="r-name">${name}</span>${flag}</div>`;
+    }
+    const amt = item.skipped
+      ? '<span class="r-amt r-note">couldn’t find it</span>'
+      : `<span class="r-amt" data-audit="money">&minus;${fmt(item.userPrice)}</span>`;
     return `<div class="receipt-line"><span class="r-name">${name}</span>${flag}<span class="r-dots"></span>${amt}</div>`;
   }).join('');
   const diffSigned = v.recommendation === 'incomplete' ? null : v.difference;
-  const figText = diffSigned == null
-    ? '· · ·'
-    : `${diffSigned < 0 ? '−' : ''}${fmt(Math.abs(diffSigned))}`;
-  const figHtml = /\d/.test(figText) ? `<span data-audit="money">${figText}</span>` : figText;
+  // Pending total: a blank line where the figure will print, at figure scale,
+  // so the slot reads as awaiting a number rather than as missing glyphs.
+  const figHtml = diffSigned == null
+    ? '<span class="fig-pending" aria-hidden="true"></span>'
+    : `<span data-audit="money">${diffSigned < 0 ? '−' : ''}${fmt(Math.abs(diffSigned))}</span>`;
 
   panel.className = `verdict-panel ${cls}`;
   panel.innerHTML = `

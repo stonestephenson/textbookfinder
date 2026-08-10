@@ -433,6 +433,13 @@ body[data-step="verdict"] .figure-panel { display: none; }
   text-align: right;
 }
 .verdict-figure.settle { animation: settle 340ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+/* Pending total: a blank line at figure scale where the number will print. */
+.fig-pending {
+  display: inline-block;
+  width: 4.5ch;
+  height: 0.72em;
+  border-bottom: 4px solid var(--grey);
+}
 @keyframes settle {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
