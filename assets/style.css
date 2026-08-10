@@ -258,7 +258,8 @@ a:hover { text-decoration-color: var(--ink); }
   padding-top: 0.6rem;
   border-top: 1px solid var(--rule);
   font-family: var(--mono);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--ink);
 }
@@ -327,6 +328,16 @@ textarea {
 /* ── Confirm step ─────────────────────────────────────────────────────── */
 
 .item-card { border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem; margin: 0.8rem 0; }
+.flag-row { margin: 0 0 0.7rem; display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+.flag-row .badge { margin-bottom: 0; }
+.item-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--grey);
+  margin: 0 0 0.7rem;
+}
 .item-card .field { margin-bottom: 0.8rem; }
 .item-card label { display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.03em; color: var(--grey); margin-bottom: 0.2rem; }
 .item-card input[type="text"], .item-card select {
@@ -340,8 +351,22 @@ textarea {
   background: var(--card);
   color: var(--ink);
 }
-.field.low-confidence input, .field.low-confidence select { border-color: var(--ink); border-width: 2px; }
-.check-hint { color: var(--ink); font-weight: 600; }
+/* An uncertain field wears a proofreader's margin mark: a heavy left edge,
+   distinct from the all-around focus ring. */
+.field.low-confidence input, .field.low-confidence select {
+  border-color: var(--ink);
+  border-width: 1px 1px 1px 4px;
+}
+.check-hint { color: var(--ink); font-weight: 400; }
+
+/* Fields sized to their content, like receipt columns. */
+.item-card input[data-field="courseCode"] { max-width: 12rem; }
+.item-card input[data-field="isbn"] {
+  max-width: 17rem;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.item-card select { max-width: 17rem; }
 
 /* The one accent role: the single-use access-code warning flag. */
 .badge {
@@ -524,4 +549,10 @@ input[type="checkbox"] { accent-color: var(--ink); width: 1.05rem; height: 1.05r
 
 @media (min-width: 700px) {
   .card, .figure-panel { padding-left: 1.6rem; padding-right: 1.6rem; }
+}
+
+@media (max-width: 480px) {
+  /* One border level's worth of breathing room back to the inputs. */
+  .card { padding-left: 0.9rem; padding-right: 0.9rem; }
+  .item-card { padding: 0.85rem 0.75rem; }
 }

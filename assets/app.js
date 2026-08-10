@@ -99,6 +99,17 @@ function showStep(step) {
   if (step !== 'input') $('tool').scrollIntoView?.({ behavior: 'smooth' });
 }
 
+// On arrival at the confirm screen, put the cursor where correction is
+// wanted: the first field the parser wasn't sure about, or the first empty
+// title when entering by hand. The trust surface should invite the edit.
+function focusFirstUncertain() {
+  requestAnimationFrame(() => {
+    const target = document.querySelector('#items-list .field.low-confidence input, #items-list .field.low-confidence select')
+      ?? [...document.querySelectorAll('#items-list input[data-field="title"]')].find((i) => !i.value);
+    target?.focus();
+  });
+}
+
 function showInputError(msg) {
   const el = $('input-errors');
   el.textContent = msg;
@@ -247,6 +258,7 @@ async function handleCaptureFiles(fileList) {
     state.units = readUnits() ?? state.units;
     renderConfirm();
     showStep('confirm');
+    focusFirstUncertain();
   } catch {
     showInputError('Couldn’t read that capture. Paste the page text instead. That works entirely in your browser.');
   } finally {
@@ -267,6 +279,7 @@ function handlePastedText() {
   state.units = readUnits() ?? state.units;
   renderConfirm();
   showStep('confirm');
+  focusFirstUncertain();
 }
 
 function wireInputStep() {
@@ -313,6 +326,7 @@ function wireInputStep() {
     state.units = readUnits() ?? state.units;
     renderConfirm();
     showStep('confirm');
+    focusFirstUncertain();
   });
 }
 
@@ -321,9 +335,12 @@ function wireInputStep() {
 function fieldHtml(item, idx, field, label, value, extra = '') {
   const low = item.confidence[field] === 'low';
   const id = `f-${idx}-${field}`;
+  // When a field is flagged uncertain, the flag replaces the label's
+  // parenthetical: "optional" next to "check this" reads as contradictory.
+  const shownLabel = low ? label.replace(/\s*\(.*\)$/, '') : label;
   return `
     <div class="field ${low ? 'low-confidence' : ''}">
-      <label for="${id}">${label}${low ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
+      <label for="${id}">${shownLabel}${low ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
       <input type="text" id="${id}" data-idx="${idx}" data-field="${field}" value="${esc(value ?? '')}" ${extra}>
     </div>`;
 }
@@ -343,7 +360,8 @@ function renderConfirm() {
       const lowFormat = item.confidence.format === 'low';
       return `
       <div class="item-card" data-item-id="${esc(item.id)}">
-        ${item.isAccessCode ? '<span class="badge">Single-use access code (usually can’t be bought used)</span>' : ''}
+        <p class="item-eyebrow">Item <span class="num">${idx + 1}</span> of <span class="num">${state.items.length}</span></p>
+        ${item.isAccessCode ? '<p class="flag-row"><span class="badge" data-audit="access-flag">Single-use access code</span> <span class="small muted">usually can’t be bought used</span></p>' : ''}
         ${fieldHtml(item, idx, 'title', 'Title', item.title)}
         ${fieldHtml(item, idx, 'courseCode', 'Course (optional)', item.courseCode, 'placeholder="e.g. CS 454"')}
         <div class="field ${lowFormat ? 'low-confidence' : ''}">
@@ -504,8 +522,8 @@ function renderCompareFigure(v) {
       ${buyTrack}
     </div>
     <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
-      ${fmt(config.pricePerUnit)} per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
-      The buying bar comes from prices you enter, not a quote.</p>
+      <span class="num">${fmt(config.pricePerUnit)}</span> per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
+      &ldquo;Buying it yourself&rdquo; fills in from prices you enter, not a quote.</p>
     <p class="figure-deadline">${deadlineLine}</p>`;
 }
 
@@ -615,9 +633,9 @@ function updateVerdictPanel(animate = false) {
     cls = 'v-close';
     headline = `It’s close: within <span class="num">${fmt(config.closeThreshold)}</span> either way.`;
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy vs <span class="num">${fmt(v.bundleCost)}</span>
-      for the bundle, ${basis}. At this margin, think about the non-price factors: most physical
-      bundle items are rentals you return; books you buy are yours to keep or resell; and materials
-      can be added to a course after you decide.</p>`;
+      for the bundle, ${basis}. At this margin, think about the non-price factors: staying in is
+      one flat charge with nothing to hunt down; books you buy are yours to keep or resell; and
+      materials can be added to a course after you decide.</p>`;
   }
 
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0
