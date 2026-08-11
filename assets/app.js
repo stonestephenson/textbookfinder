@@ -462,64 +462,23 @@ function formatDeadline(iso) {
   });
 }
 
-// Whatever units value the user can currently see and edit: the confirm-step
-// field while confirming, otherwise the hero stepper. Keeps the pinned figure
-// agreeing with the input next to it instead of a stale snapshot.
-function liveUnits() {
-  if (state.step === 'confirm') {
-    const v = Number($('confirm-units-input')?.value);
-    if (Number.isFinite(v) && v >= 1 && v <= config.maxUnits) return v;
-  }
-  return readUnits() ?? state.units ?? heroUnits;
-}
 
 // The pinned instrument. Pass a verdict for live totals; pass null before the
 // user has confirmed anything and it shows the bundle bar with the buying bar
 // honestly unmeasured.
-function renderCompareFigure(v) {
+// The panel's ledger preview. The bundle amount lives once, in the bill
+// sentence above; this line holds the place the user's own total will fill.
+// (On the verdict step the panel is hidden and the receipt takes over.)
+function renderCompareFigure() {
   const el = $('compare-figure');
-  const units = v ? state.units : liveUnits();
-  const bundleCost = v ? v.bundleCost : Math.round(units * config.pricePerUnit * 100) / 100;
-
-  let buyLabel = 'Buying it yourself';
-  let buyVal;
-  let buyTrack;
-  if (!v) {
-    buyVal = 'not measured yet';
-    buyTrack = '<div class="compare-track t-empty"></div>';
-  } else if (state.items.length === 0) {
-    buyLabel = 'Buying nothing (your list shows no items)';
-    buyVal = fmt(0);
-    buyTrack = '<div class="compare-track t-buy" style="width:2%"></div>';
-  } else if (v.pricedCount === 0) {
-    buyVal = v.complete ? 'nothing to compare yet' : 'type prices below';
-    buyTrack = '<div class="compare-track t-empty"></div>';
-  } else {
-    if (!v.complete || v.skippedCount > 0) buyLabel += ` (${v.pricedCount} of ${v.totalCount} priced)`;
-    buyVal = fmt(v.knownBuyTotal);
-  }
-
-  const maxVal = Math.max(bundleCost, v?.knownBuyTotal ?? 0, 1);
-  const w = (x) => Math.max(2, Math.round((x / maxVal) * 100));
-  if (buyTrack === undefined) {
-    buyTrack = `<div class="compare-track t-buy" style="width:${w(v.knownBuyTotal)}%"></div>`;
-  }
-
   const deadlineLine = config.optOutDeadline
     ? `Opt-out deadline: ${esc(formatDeadline(config.optOutDeadline))}`
     : `Opt out by SSU&rsquo;s add/drop deadline for ${esc(config.term)}`;
-  const buyValIsMoney = /^\$/.test(String(buyVal));
 
   el.innerHTML = `
     <div class="compare-row">
-      <div class="compare-label"><span>Seawolf Bundle, <span class="num">${units}</span> units</span>
-        <span class="val" data-audit="money">${fmt(bundleCost)}</span></div>
-      <div class="compare-track t-bundle" style="width:${w(bundleCost)}%"></div>
-    </div>
-    <div class="compare-row">
-      <div class="compare-label"><span>${esc(buyLabel)}</span>
-        <span class="val${buyValIsMoney ? '' : ' muted'}"${buyValIsMoney ? ' data-audit="money"' : ''}>${buyVal}</span></div>
-      ${buyTrack}
+      <div class="compare-label"><span>Buying it yourself</span>
+        <span class="val muted">not measured yet</span></div>
     </div>
     <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
       <span class="num">${fmt(config.pricePerUnit)}</span> per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
@@ -774,7 +733,7 @@ function updateBill() {
       heroUnits = units;
       const amount = fmt(Math.round(units * config.pricePerUnit * 100) / 100);
       out.innerHTML = `Unless you opt out, SSU bills you
-        <strong id="bill-amount">${amount}</strong> for it this semester.`;
+        <strong id="bill-amount">${amount}</strong> for the bundle this semester.`;
     }
   }
   if (state.step !== 'verdict') renderCompareFigure(null);
@@ -788,6 +747,7 @@ function nudgeUnits(delta) {
 $('units-input')?.addEventListener('input', updateBill);
 $('units-minus')?.addEventListener('click', () => nudgeUnits(-1));
 $('units-plus')?.addEventListener('click', () => nudgeUnits(1));
+showStep('input'); // marks the stepper's starting position and renders the panel
 updateBill();
 
 // Tailor the capture instruction to this device so nobody reads three sets of
