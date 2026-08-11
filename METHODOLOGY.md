@@ -93,8 +93,8 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
 
 No accounts, no database, no analytics, no tracking. Pasted text never leaves your browser.
 Captures (screenshots or a full-page PDF) are sent once to the parsing endpoint, which forwards
-them to the Anthropic API to read the item list — course code, title, format, ISBN — and nothing
-else; this site stores neither the capture nor the result. (Handling by the Anthropic API itself is governed by
-Anthropic's data policies; this site vouches only for what it controls.)
+them to a third-party AI vision service to read the item list — course code, title, format,
+ISBN — and nothing else; this site stores neither the capture nor the result. (Handling by the
+AI provider is governed by its own data policies; this site vouches only for what it controls.)
 The site's full source, including this file's history, is public in
 [the repository](https://github.com/stonestephenson/textbookfinder).
