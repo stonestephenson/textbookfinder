@@ -43,6 +43,12 @@ export const config = {
   // working, entirely in the browser.
   parseEndpoint: '/api/parse',
 
+  // Endpoint that fetches real purchase offers by ISBN (see api/price.js;
+  // source and selection policy in METHODOLOGY.md). Set to null to disable —
+  // price fields stay manual and the search links below still work. The
+  // request carries ISBNs only, never anything else from the user's cart.
+  priceEndpoint: '/api/price',
+
   // Sanity bound for the units input.
   maxUnits: 24,
 

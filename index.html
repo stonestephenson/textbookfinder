@@ -101,7 +101,8 @@
       <p class="privacy-note">Pasted text is read entirely in your browser. Captures are sent
         once through this site&rsquo;s parser to an outside automated reading service that
         extracts your item list (course, title, format, ISBN), and this site never stores
-        them.</p>
+        them. Price lookups send only the ISBNs from your confirmed list, nothing about you
+        or your courses.</p>
 
       <div id="input-errors" class="notice notice-warn" hidden></div>
     </section>
@@ -182,10 +183,12 @@
       <p>It uses your own list as the source of truth. Sometimes the answer really is to stay
         in: single-use access codes usually can&rsquo;t be bought used, and if your list includes
         a few of them, the bundle can win. The tool will tell you either way.</p>
-      <p>It reads what <em>your</em> list shows, has you confirm it, and does arithmetic. It
-        never looks up prices behind your back and never asserts a price it didn&rsquo;t source:
-        the buy-it-yourself total is built from prices <em>you</em> find at the links it gives
-        you. The full computation is documented in
+      <p>It reads what <em>your</em> list shows, has you confirm it, then finds real offers for
+        your items in the open: every price it fills in names its store, links to the actual
+        offer, and can be replaced with your own number in one tap. It never asserts a price it
+        can&rsquo;t show you. Access codes are the one exception: stores don&rsquo;t sell those
+        used, so when your own capture shows a listed price the tool uses that, labeled as
+        yours. The full computation is documented in
         <a data-link="methodology" href="METHODOLOGY.md">the methodology</a>, and every factual
         claim on this page is sourced line-by-line in
         <a data-link="claims" href="CLAIMS.md">the claims ledger</a>.</p>

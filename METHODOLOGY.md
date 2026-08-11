@@ -18,16 +18,55 @@ $21.00/unit is the bookstore's stated Seawolf Bundle rate, confirmed in writing
 charge. All comparison math is done in whole cents — each entered price is rounded to the cent
 when totals are computed — so totals never drift by a penny.
 
-**Buy-it-yourself total** — the sum of prices **you** typed in:
+**Buy-it-yourself total** — the sum of one price per item:
 
 ```
-buy total = sum of the "best price you found" you entered for each item
+buy total = sum over items of (fetched offer | capture-listed price | your number)
 ```
 
-The tool never looks up, estimates, or asserts a price on its own. It gives you search links
-(Amazon, AbeBooks, eBay — by ISBN when your cart showed one, otherwise by title) and you type in
-what you actually found. The verdict is only as good as the prices you enter — the tool does not
-verify them.
+Each item's price comes from exactly one of three labeled sources, and you can override any of
+them:
+
+1. **A fetched offer.** For items with an ISBN, the tool asks its price source (below) for real,
+   currently purchasable offers and fills in the cheapest one, shipping included. The line names
+   the store, the condition or rental length, and links to the offer so you can check it.
+2. **The price printed in your own capture** — access codes only. Stores don't sell single-use
+   codes used, so when your uploaded screenshot shows a listed price for one, that price is used
+   and labeled "listed in your own capture." Bookstore prices are **never** used for books this
+   way: a bookstore's book price is not a market price.
+3. **A number you typed.** Tap "change" on any line, or use the search links (Amazon, AbeBooks,
+   eBay — by ISBN when your cart showed one, otherwise by title) for items nothing was found for.
+   Your number always wins over a fetched one.
+
+The tool never estimates, averages, or invents a price. Every price in the math is one of the
+three above, and each is labeled in the UI with which one it is.
+
+## Where the fetched prices come from
+
+The price source is **BooksRun** (booksrun.com), queried live by ISBN at the moment you confirm
+your list — the one free, documented purchase-price API available (`api/price.js`; selection
+logic in `api/pick-offer.js`, which is fully unit-tested). Selection rules:
+
+- Candidates are real purchasable offers: BooksRun's own used/new stock, its marketplace
+  sellers' used/new stock, and rentals of **110 days or longer** (a fall or spring term,
+  first day through finals). The bundle is rental-first, so a term-length rental is a fair
+  comparable; a 90-day rental that ends before finals is not, and is excluded even when
+  cheaper.
+- Ebook offers are excluded: platform access isn't ownership and muddies the comparison.
+- The compared number is always **price plus shipping**.
+- Links go to plain product pages. The API returns affiliate-tagged cart links; the tags are
+  deliberately stripped so this site earns nothing from any choice you make (CLAIMS.md #30).
+
+**What this source does not cover, and which way that errs:** Amazon and other large retailers
+don't offer usable price APIs (Amazon's requires an active affiliate relationship and mandates
+tagged links, both incompatible with this site's no-earnings rule). A cheaper copy may therefore
+exist elsewhere — which means fetched totals are an **upper bound** on what a diligent shopper
+pays. An "opt out" verdict can only get stronger with better shopping; the direction of error
+runs toward "stay in," the conservative direction. Every item keeps its search links so you can
+beat the found price and type in what you find.
+
+Offers are live inventory and can change between lookup and purchase. The verdict page says so,
+and no fetched price is stored anywhere.
 
 ## The recommendation rules
 
@@ -67,16 +106,18 @@ so:
 
 - **Nothing is computed until you confirm the parsed list.** Every field is editable.
 - Fields the parser wasn't sure about are highlighted for your attention rather than guessed at.
-- Prices that appear on the bookstore page are deliberately **ignored** during parsing — the tool
-  never ingests a price it didn't source, and bookstore rental prices aren't what you'd pay
-  elsewhere anyway.
+- Prices printed on the bookstore page are recorded only as what they are — the page's listed
+  price — and used **only for access codes** (see above). Book prices from the bookstore never
+  enter the math: bookstore rental prices aren't what you'd pay elsewhere.
 
 A parse error therefore becomes a correction you make, never a silent wrong answer.
 
 ## What the tool does not know
 
-- **Real prices.** It links out; you supply what you found. It cannot know about shipping,
-  condition, counterfeits, or a price that changed an hour later.
+- **Tomorrow's prices.** Fetched offers are real at the moment of lookup, with shipping
+  included and condition shown when the seller states it — but they are live inventory. The
+  tool cannot know about counterfeits, seller reliability, or a price that changed an hour
+  later, which is why every offer is linked for you to check before buying.
 - **What your courses require.** It only ever reads what *your cart showed when you captured it*.
   Materials can be added after your opt-out decision (late faculty adoptions are permitted by the
   contract — CLAIMS.md #19), which is why the site tells you to check your cart again near the
@@ -94,7 +135,9 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
 No accounts, no database, no analytics, no tracking. Pasted text never leaves your browser.
 Captures (screenshots or a full-page PDF) are sent once to the parsing endpoint, which forwards
 them to a third-party reading service to extract the item list — course code, title, format,
-ISBN — and nothing else; this site stores neither the capture nor the result. (Handling by that
-provider is governed by its own data policies; this site vouches only for what it controls.)
+ISBN, and any printed per-item price — and nothing else; this site stores neither the capture
+nor the result. Price lookups send **only the ISBNs** from your confirmed list to the price
+source — never titles, courses, units, or anything that identifies you. (Handling by those
+providers is governed by their own data policies; this site vouches only for what it controls.)
 The site's full source, including this file's history, is public in
 [the repository](https://github.com/stonestephenson/textbookfinder).

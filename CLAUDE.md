@@ -19,8 +19,12 @@
 
 - **No SSU credentials, ever.** No login, no OAuth against SSU, no password fields.
 - **No scraping** the Barnes & Noble / bookstore site.
-- **Never assert a price the tool didn't source.** v1 links out; user-typed prices are always
-  labeled as the user's own numbers. Parsers deliberately ignore prices in input.
+- **Never assert a price the tool can't show a source for.** Exactly three price sources exist,
+  each labeled in the UI (owner decision 2026-08-11, relaxing the original never-look-up rule):
+  live fetched offers (`api/price.js` → BooksRun, plain non-affiliate links, policy in
+  `api/pick-offer.js` + METHODOLOGY.md), the price printed in the user's own capture (applied
+  to **access-code items only**, never books), and the user's typed numbers, which always win.
+  No estimate, average, or bookstore book price ever enters the math.
 - **Never claim what a course requires.** All copy speaks in the frame "your cart shows…".
 - **Confirmation before computation.** The confirm step is never skipped or auto-accepted; low
   parse confidence highlights the field and asks instead of guessing.
@@ -44,6 +48,9 @@
   (The "Why this tool exists" story keeps its 2026 numbers on purpose — it's a dated case.)
 - **The model call is quarantined** in `api/parse.js` → `extractItems()`. The rest of the app
   must keep working when the endpoint is absent (`config.parseEndpoint = null`).
+- **The price call is quarantined the same way** in `api/price.js` → `pickOffer()`
+  (`api/pick-offer.js`, pure and unit-tested). With `config.priceEndpoint = null` or the
+  endpoint down, price fields stay manual and the search links carry the flow, silently.
 - **After any substantive change to copy or verdict logic**, run a fresh-context adversarial
   check: spawn a subagent with no session context, give it only `SEAWOLF_BUNDLE_CONTEXT.md` +
   the built site, and ask it to find (a) unsourced claims, (b) §5 leakage, (c) wrong/overstated
@@ -58,7 +65,8 @@
 
 ## Roadmap context (don't build ahead of it)
 
-- **v1 (now):** the single-flow calculator. No accounts, no DB, no price API. Ship before Fall
+- **v1 (now):** the single-flow calculator. No accounts, no DB. (The original "no price API"
+  scope was amended 2026-08-11: `api/price.js` auto-fills offers, see invariants above.) Ship before Fall
   2026 add/drop (~early-to-mid September), then ~1 week of real testing with 10–15 students'
   actual carts — that testing step is the only reliable source of edge cases and cannot be
   skipped or compressed.

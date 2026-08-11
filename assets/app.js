@@ -12,6 +12,10 @@ const state = {
   items: [],
   units: null,
   warnings: [],
+  // Price auto-fill: 'idle' | 'loading' | 'done' | 'unavailable'. fetchSeq
+  // invalidates an in-flight lookup when the user leaves or edits the list.
+  priceFetch: 'idle',
+  fetchSeq: 0,
 };
 
 let nextManualId = 1;
@@ -51,6 +55,9 @@ function emptyItem() {
     isbn: null,
     isAccessCode: false,
     userPrice: null,
+    priceSource: null, // 'auto' (fetched offer) | 'capture' (listed in upload) | 'user'
+    offer: null, //  metadata of a fetched offer: kind, seller, rentDays, url, fetchedAt
+    listedPrice: null, // price printed in the user's own capture, if any
     skipped: false,
     confidence: { courseCode: 'high', title: 'high', format: 'high', isbn: 'high' },
   };
@@ -68,6 +75,10 @@ function adoptItems(rawItems) {
       isbn: r.isbn ?? null,
       isAccessCode: false,
       userPrice: null,
+      priceSource: null,
+      offer: null,
+      listedPrice: Number.isFinite(r.listedPrice) && r.listedPrice >= 0 && r.listedPrice <= 99999
+        ? Math.round(r.listedPrice * 100) / 100 : null,
       skipped: false,
       confidence: {
         courseCode: r.confidence?.courseCode === 'high' ? 'high' : 'low',
@@ -435,9 +446,67 @@ function wireConfirmStep() {
       return;
     }
     state.units = unitsVal;
+    applyCapturePrices();
+    fetchPrices(); // sync prologue sets the loading state before the render below
     renderVerdict();
     showStep('verdict');
   });
+}
+
+// ── Price auto-fill ─────────────────────────────────────────────────────────
+
+// Access codes usually can't be bought used; the bookstore's own listed price
+// (read from the user's capture, when one was printed there) is the honest
+// number for them. Never applied to books — bookstore book prices aren't
+// market prices — and never over a price the user already set.
+function applyCapturePrices() {
+  for (const it of state.items) {
+    if (it.isAccessCode && !it.skipped && it.userPrice == null && it.listedPrice != null) {
+      it.userPrice = it.listedPrice;
+      it.priceSource = 'capture';
+    }
+  }
+}
+
+// Fetch real offers for items that have an ISBN and no price yet. Optional by
+// design: on any failure the flow silently stays manual, exactly as it was
+// before this endpoint existed. Requests carry ISBNs only.
+async function fetchPrices() {
+  state.fetchSeq += 1;
+  const seq = state.fetchSeq;
+  const want = state.items.filter((it) => !it.skipped && it.userPrice == null && (it.isbn ?? '').trim());
+  if (!config.priceEndpoint || want.length === 0) {
+    state.priceFetch = config.priceEndpoint ? 'idle' : 'unavailable';
+    return;
+  }
+  state.priceFetch = 'loading';
+  let outcome = 'unavailable';
+  try {
+    const res = await fetch(config.priceEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isbns: want.map((it) => it.isbn.trim()) }),
+    });
+    const body = res.ok ? await res.json().catch(() => null) : null;
+    if (seq !== state.fetchSeq) return; // the user moved on; don't touch anything
+    if (body?.offers) {
+      outcome = 'done';
+      for (const it of want) {
+        const offer = body.offers[it.isbn.trim()];
+        // Re-check: the user may have typed a price while we were fetching.
+        if (offer && it.userPrice == null && !it.skipped) {
+          it.userPrice = offer.total;
+          it.priceSource = 'auto';
+          it.offer = { ...offer, source: body.source ?? 'BooksRun', fetchedAt: body.fetchedAt ?? null };
+        }
+      }
+    }
+  } catch {
+    // fall through to 'unavailable'
+  }
+  if (seq !== state.fetchSeq) return;
+  state.priceFetch = outcome;
+  if (state.step === 'verdict') renderVerdict();
 }
 
 // ── Verdict step ────────────────────────────────────────────────────────────
@@ -482,7 +551,8 @@ function renderCompareFigure() {
     </div>
     <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
       <span class="num">${fmt(config.pricePerUnit)}</span> per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
-      &ldquo;Buying it yourself&rdquo; fills in from prices you enter, not a quote.</p>
+      &ldquo;Buying it yourself&rdquo; fills in from real offers found for your items, each one
+      linked and yours to change.</p>
     <p class="figure-deadline">${deadlineLine}</p>`;
 }
 
@@ -499,30 +569,73 @@ function updatePriceProgress(v) {
     : `${v.pricedCount} of ${v.totalCount} priced. Each price you add sharpens the answer.`;
 }
 
+// One line describing where a fetched offer came from, for the item row.
+function offerLabel(offer) {
+  const kind = offer.kind === 'rent'
+    ? `${offer.rentDays}-day rental`
+    : `${offer.kind}${offer.condition ? ` (${offer.condition})` : ''}`;
+  const via = offer.seller ? `${offer.source} seller ${offer.seller}` : offer.source;
+  return `${via} · ${kind} · shipping included`;
+}
+
+// Is this item still waiting on the automatic price lookup?
+function priceLoading(item) {
+  return state.priceFetch === 'loading' && !item.skipped
+    && item.userPrice == null && Boolean((item.isbn ?? '').trim());
+}
+
 function renderVerdict() {
   const container = $('verdict-items');
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    container.innerHTML = `<p class="muted small">Open a store, find your edition&rsquo;s best
-      price, type it in. Links search by ISBN when your list showed one, otherwise by title.</p>`
-      + state.items.map((item, idx) => `
+    const autoCount = state.items.filter((it) => it.priceSource === 'auto' || it.priceSource === 'capture').length;
+    const openCount = state.items.filter((it) => !it.skipped && it.userPrice == null && !priceLoading(it)).length;
+    let intro = '';
+    if (state.priceFetch === 'loading') {
+      intro = 'Finding real prices for your items&hellip;';
+    } else if (autoCount > 0 && openCount === 0) {
+      intro = 'Every price below is a real offer, linked so you can check it. Not happy with one? Change it and the math follows your number.';
+    } else if (openCount > 0) {
+      intro = `${autoCount > 0 ? 'Prices were found where possible. ' : ''}For the rest: open a link,
+        find your edition, and type the price you see. Links search by ISBN when your list showed
+        one, otherwise by title.`;
+    }
+    container.innerHTML = `<p class="muted small">${intro}</p>`
+      + state.items.map((item, idx) => {
+        const found = !item.skipped && item.userPrice != null
+          && (item.priceSource === 'auto' || item.priceSource === 'capture');
+        const loading = priceLoading(item);
+        const manualHidden = found || loading;
+        const summary = !found ? '' : (item.priceSource === 'auto'
+          ? `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
+              <span class="price-src">${esc(offerLabel(item.offer))} ·
+              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">see the offer&nbsp;&#8599;</a></span>
+              <button type="button" class="linkish" data-edit-idx="${idx}">change</button></div>`
+          : `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
+              <span class="price-src">listed in your own capture</span>
+              <button type="button" class="linkish" data-edit-idx="${idx}">change</button></div>`);
+        return `
       <div class="v-item${item.userPrice != null && !item.skipped ? ' priced' : ''}${item.skipped ? ' skipped' : ''}" data-item-idx="${idx}">
         <span class="item-state">${ICONS.good} priced</span>
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
         <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format]].filter(Boolean).join(' · '))}${item.isbn ? ` · ISBN <span class="num">${esc(item.isbn)}</span>` : ''}</div>
         ${item.isAccessCode ? `<div class="badge" data-audit="access-flag">Single-use access code</div>
-          <div class="v-meta">Access codes usually can&rsquo;t be bought used. Check the
-          publisher&rsquo;s own price for new access and enter that.</div>` : ''}
-        <div class="retailer-links">${retailerLinks(item)}</div>
-        <div class="price-row">
-          <label for="price-${idx}">Best price you found</label>
-          <span class="num price-currency">$</span><input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
-            inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}" ${item.skipped ? 'disabled' : ''}>
-          <label class="skip-label"><input type="checkbox" data-skip-idx="${idx}" ${item.skipped ? 'checked' : ''}>
-            couldn&rsquo;t find it</label>
+          <div class="v-meta">Access codes usually can&rsquo;t be bought used.${found || item.userPrice != null ? '' : ' Check the publisher&rsquo;s own price for new access and enter that.'}</div>` : ''}
+        ${loading ? '<div class="price-found"><span class="price-src">checking prices&hellip;</span></div>' : ''}
+        ${summary}
+        <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
+          <div class="retailer-links">${retailerLinks(item)}</div>
+          <div class="price-row">
+            <label for="price-${idx}">Best price you found</label>
+            <span class="num price-currency">$</span><input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
+              inputmode="decimal" placeholder="0.00" value="${item.userPrice ?? ''}" ${item.skipped ? 'disabled' : ''}>
+            <label class="skip-label"><input type="checkbox" data-skip-idx="${idx}" ${item.skipped ? 'checked' : ''}>
+              couldn&rsquo;t find it</label>
+          </div>
         </div>
-      </div>`).join('');
+      </div>`;
+      }).join('');
   }
 
   const deadlineEl = $('deadline-note');
@@ -550,8 +663,8 @@ function updateVerdictPanel(animate = false) {
   const v = computeVerdict(state.items, state.units, config);
   const panel = $('verdict-panel');
   const basis = v.basedOnAll
-    ? 'based on the prices you entered for every item'
-    : `based on the prices you entered for ${v.pricedCount} of ${v.totalCount} items`;
+    ? 'based on a price for every item on your list'
+    : `based on prices for ${v.pricedCount} of ${v.totalCount} items`;
 
   let cls = '';
   let headline = '';
@@ -569,10 +682,20 @@ function updateVerdictPanel(animate = false) {
       but without at least one price you found, the tool has no basis for a verdict and won’t
       invent one. Try the search links again, or ask a librarian or classmate for help finding
       a price.</p>`;
+  } else if (v.recommendation === 'incomplete' && state.priceFetch === 'loading') {
+    headline = 'Checking real prices for your items&hellip;';
+    detail = `<p class="verdict-detail">The bundle side is already known:
+      <span class="num">${fmt(v.bundleCost)}</span> for your units. The buying side is being
+      looked up right now. Anything the lookup can’t find, you can price by hand below.</p>`;
   } else if (v.recommendation === 'incomplete') {
-    headline = 'Enter the prices you find and the verdict appears here.';
+    const remaining = v.totalCount - v.pricedCount - v.skippedCount;
+    headline = remaining === 1
+      ? 'One item still needs a price.'
+      : `${remaining} items still need a price.`;
     detail = `<p class="verdict-detail">So far: bundle <span class="num">${fmt(v.bundleCost)}</span> vs
-      <span class="num">${fmt(v.knownBuyTotal)}</span> ${basis}. The tool won’t call it until every
+      <span class="num">${fmt(v.knownBuyTotal)}</span> found, ${basis}. For the bundle to come out
+      ahead, the remaining ${remaining === 1 ? 'item' : `${remaining} items together`} would have to
+      cost more than <span class="num">${fmt(v.difference)}</span>. The tool won’t call it until every
       item has a price or is marked “couldn’t find it”.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
@@ -616,9 +739,12 @@ function updateVerdictPanel(animate = false) {
     const flag = item.isAccessCode
       ? '<span class="r-flag" data-audit="access-flag">access code</span>' : '';
     // An unpriced line gets no leader and no amount cell: a leader pointing
-    // at nothing reads as a glitch, not as pending.
+    // at nothing reads as a glitch, not as pending. While the price lookup is
+    // in flight it says so instead.
     if (!item.skipped && item.userPrice == null) {
-      return `<div class="receipt-line"><span class="r-name">${name}</span>${flag}</div>`;
+      const note = priceLoading(item)
+        ? '<span class="r-amt r-note">checking&hellip;</span>' : '';
+      return `<div class="receipt-line"><span class="r-name">${name}</span>${flag}${note ? '<span class="r-dots"></span>' : ''}${note}</div>`;
     }
     const amt = item.skipped
       ? '<span class="r-amt r-note">couldn’t find it</span>'
@@ -642,8 +768,9 @@ function updateVerdictPanel(animate = false) {
         <div class="verdict-figure${animate ? ' settle' : ''}" data-audit="verdict-figure">${figHtml}</div>
       </div>
       <p class="verdict-headline">${headline}</p>${detail}${accessNote}
-      <p class="muted small">Prices you type are your findings from the linked stores. The tool
-      doesn’t verify them, and the verdict is only as good as your numbers.
+      <p class="muted small">Found prices are real offers at the moment of lookup, each linked
+      below so you can check it. Prices you type are your own findings. Offers move, so buy soon
+      after you decide. The verdict is only as good as these inputs.
       <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>
     </div>`;
   renderCompareFigure(v);
@@ -651,6 +778,20 @@ function updateVerdictPanel(animate = false) {
 }
 
 function wireVerdictStep() {
+  // "change" on a found price: the summary gives way to the manual row, and
+  // from here on this line runs on the user's own number.
+  $('verdict-items').addEventListener('click', (e) => {
+    const idx = e.target.dataset?.editIdx;
+    if (idx === undefined) return;
+    const row = e.target.closest('.v-item');
+    row?.querySelector('.price-found')?.remove();
+    const manual = row?.querySelector('.price-manual');
+    if (manual) {
+      manual.hidden = false;
+      manual.querySelector('input[type="number"]')?.focus();
+    }
+  });
+
   $('verdict-items').addEventListener('input', (e) => {
     const priceIdx = e.target.dataset?.priceIdx;
     const skipIdx = e.target.dataset?.skipIdx;
@@ -658,7 +799,9 @@ function wireVerdictStep() {
       const val = e.target.value === '' ? null : Number(e.target.value);
       const valid = Number.isFinite(val) && val >= 0 && val <= 99999;
       if (val !== null && !valid) e.target.value = ''; // don't display a number the math ignores
-      state.items[Number(priceIdx)].userPrice = valid ? val : null;
+      const item = state.items[Number(priceIdx)];
+      item.userPrice = valid ? val : null;
+      item.priceSource = valid ? 'user' : null;
     } else if (skipIdx !== undefined) {
       const item = state.items[Number(skipIdx)];
       item.skipped = e.target.checked;
@@ -677,10 +820,13 @@ function wireVerdictStep() {
   });
 
   $('edit-items-btn').addEventListener('click', () => {
+    state.fetchSeq += 1; // abandon any in-flight price lookup
     renderConfirm();
     showStep('confirm');
   });
   $('restart-btn').addEventListener('click', () => {
+    state.fetchSeq += 1;
+    state.priceFetch = 'idle';
     state.items = [];
     state.units = null;
     state.warnings = [];

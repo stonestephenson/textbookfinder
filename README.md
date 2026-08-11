@@ -3,7 +3,9 @@
 A single-page calculator that tells a Sonoma State University student whether the **Seawolf
 Bundle** — the $21/unit auto-enrolled course materials program — is cheaper than buying what
 their own bookstore cart shows. Screenshot or paste your course materials page, confirm what was
-read, find real prices at the links it gives you, and get the arithmetic.
+read, and get the arithmetic: real offers are looked up for your items automatically (each one
+linked and editable), and anything that can't be found you can price yourself at the links it
+gives you.
 
 Built by an SSU student. Not affiliated with SSU, Sonoma State Enterprises, or Barnes & Noble.
 
@@ -18,8 +20,12 @@ These are design rules, not merely current facts:
 
 - Never asks for SSU credentials of any kind. No login, no OAuth.
 - Never scrapes the bookstore site.
-- Never asserts a price it didn't source — v1 links out and the student types in what they found,
-  always labeled as their own number.
+- Never asserts a price it can't show a source for. Every price in the math is one of three
+  labeled things: a live fetched offer (store named, offer linked, shipping included), the price
+  printed in the student's own capture (access codes only), or a number the student typed —
+  which always wins. Details in [METHODOLOGY.md](METHODOLOGY.md).
+- Never earns from a link. The price source's affiliate parameters are stripped; links go to
+  plain product pages.
 - Never claims what a course *requires* — it reports what *the user's own cart shows*.
 - Never computes anything before the user confirms the parsed list.
 - Never stores screenshots, uses analytics, or identifies users.
@@ -107,23 +113,29 @@ what the pre-launch student test is for.
 
 ## Deploying
 
-**Vercel (recommended — it's what makes screenshot parsing work):**
+**Vercel (recommended — it's what makes screenshot parsing and price lookup work):**
 
 1. Import the GitHub repo into Vercel. No framework, no build command — it's static files plus
-   one serverless function (`api/parse.js`).
+   two serverless functions (`api/parse.js`, `api/price.js`).
 2. Set the environment variable `ANTHROPIC_API_KEY` (get one at console.anthropic.com).
    Optional: `PARSE_MODEL` to override the vision model — the default is `claude-haiku-4-5`
    (roughly half a cent per screenshot; a whole semester of campus use is a few dollars).
-3. **Set a spend cap** on the Anthropic account. The parse endpoint validates and size-limits
+3. Set the environment variable `BOOKSRUN_API_KEY` (free, from booksrun.com's API signup) so
+   price fields fill themselves in. Without it the endpoint answers 503 and students price
+   items by hand at the search links — the site keeps working.
+4. **Set a spend cap** on the Anthropic account. The parse endpoint validates and size-limits
    input but is publicly callable; a monthly cap bounds worst-case abuse.
-4. Point the domain at the deployment.
+5. Point the domain at the deployment.
 
-**Netlify** works the same way (the function needs the usual Netlify function wrapper if you
-migrate it). **GitHub Pages** serves the static site fine but cannot run the parse function —
-set `parseEndpoint: null` in `config.js` and the site runs in paste/manual mode only.
+**Netlify** works the same way (the functions need the usual Netlify function wrapper if you
+migrate them). **GitHub Pages** serves the static site fine but cannot run the functions —
+set `parseEndpoint: null` and `priceEndpoint: null` in `config.js` and the site runs in
+paste/manual mode only.
 
 The vision call lives entirely in [`api/parse.js`](api/parse.js) behind one function
-(`extractItems`) — swapping the model or provider touches only that file.
+(`extractItems`); the price source lives entirely in [`api/price.js`](api/price.js) behind
+one pure function ([`api/pick-offer.js`](api/pick-offer.js)) — swapping either provider
+touches only its file.
 
 ## Handing this off
 
@@ -131,7 +143,8 @@ The author graduates in December 2026. Whoever adopts this — an Associated Stu
 faculty, a student club — needs:
 
 1. This repo (fork it or get transferred ownership).
-2. A Vercel account with the repo connected and an Anthropic API key with a spend cap.
+2. A Vercel account with the repo connected, an Anthropic API key with a spend cap, and a free
+   BooksRun API key for price lookup.
 3. The semester checklist above.
 4. The discipline that keeps it credible: **nothing goes in the UI without a CLAIMS.md source**,
    and the tool must stay willing to say "stay in" when the numbers say so. A calculator that
@@ -146,7 +159,9 @@ assets/config.js          ★ Semester config — the only file that needs regul
 assets/parse-text.js      In-browser parser for pasted text
 assets/verdict.js         The arithmetic + recommendation rules (pure, tested)
 api/parse.js              Serverless screenshot parser (the only file that calls an AI model)
-tests/                    node --test suites for verdict + text parser
+api/price.js              Serverless price lookup (ISBNs in, real offers out)
+api/pick-offer.js         Offer selection policy (pure, tested)
+tests/                    node --test suites for verdict, text parser, offer selection
 METHODOLOGY.md            Exactly how the verdict is computed, and what the tool doesn't know
 CLAIMS.md                 Audit trail: every UI claim → its source
 contract/                 The public-records production backing the claims

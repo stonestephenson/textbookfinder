@@ -525,6 +525,29 @@ body[data-step="verdict"] .figure-panel { display: none; }
 .skip-label { font-size: 0.85rem; color: var(--grey); display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; }
 input[type="checkbox"] { accent-color: var(--ink); width: 1.05rem; height: 1.05rem; }
 
+/* A found price: the number leads, its provenance follows, changing it is
+   an escape hatch rather than a task. */
+.price-found { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; margin: 0.5rem 0 0.1rem; }
+.price-found > .num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.price-src { font-size: 0.85rem; color: var(--grey); }
+.price-src a { color: inherit; }
+.linkish {
+  border: none;
+  background: none;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.85rem;
+  color: var(--grey);
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 44px;
+}
+.linkish:hover { color: var(--ink); }
+
 /* ── Receipts band (the sourced facts) ────────────────────────────────── */
 
 .receipts { border-top: 1px solid var(--rule); padding: 2.5rem 0 2.75rem; margin-top: 2rem; }

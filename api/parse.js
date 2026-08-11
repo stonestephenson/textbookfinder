@@ -38,12 +38,16 @@ const RESULT_SCHEMA = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['courseCode', 'title', 'format', 'isbn', 'confidence'],
+        required: ['courseCode', 'title', 'format', 'isbn', 'listedPrice', 'confidence'],
         properties: {
           courseCode: { anyOf: [{ type: 'string' }, { type: 'null' }] },
           title: { anyOf: [{ type: 'string' }, { type: 'null' }] },
           format: { enum: ['physical', 'digital', 'access_code', 'unknown'] },
           isbn: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          listedPrice: {
+            anyOf: [{ type: 'number' }, { type: 'null' }],
+            description: 'the price printed next to this item in the capture, as a plain number, or null if none is legible',
+          },
           confidence: {
             type: 'object',
             additionalProperties: false,
@@ -68,7 +72,7 @@ Extract every course material item that is actually visible. Rules:
 - Report ONLY what you can read in the image. Never invent or complete an ISBN — if it isn't fully legible, set isbn to null and mark its confidence "low". A wrong ISBN is worse than no ISBN.
 - For each field you had to infer or that is partially cut off, set its confidence to "low". The student reviews and corrects everything you return, so "low" is a request for their attention, not a failure.
 - format: "physical" for print books and rentals, "digital" for ebooks/eTexts, "access_code" for courseware and access codes (MyLab, MindTap, WebAssign, Connect, ALEKS, Revel, Achieve, zyBooks, and similar platforms).
-- Ignore any prices shown in the screenshot entirely — do not extract them.
+- listedPrice: if a price is printed next to the item, record it as a plain number (no currency sign). If no price is legible for that item, set it to null. Never estimate, compute, or carry a price over from another item. Ignore page-level totals and "savings" figures entirely.
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
 - Use warnings for anything the student should know (e.g. "the list appears cut off; there may be more items below").`;
 

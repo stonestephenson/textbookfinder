@@ -116,6 +116,42 @@ async function apiContract(base) {
   });
 }
 
+async function priceApiContract(base) {
+  const post = (body, headers = {}) => fetch(`${base}/api/price`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+
+  process.env.BOOKSRUN_API_KEY = 'e2e-fake-key-never-valid';
+  await check('price: GET is rejected with 405', async () => {
+    const r = await fetch(`${base}/api/price`);
+    expect(r.status === 405, `got ${r.status}`);
+  });
+  await check('price: missing/invalid ISBNs → 400', async () => {
+    expect((await post({})).status === 400, 'empty body accepted');
+    expect((await post({ isbns: [] })).status === 400, 'empty list accepted');
+    expect((await post({ isbns: ['not-an-isbn'] })).status === 400, 'garbage ISBN accepted');
+    expect((await post({ isbns: Array(21).fill('9780134093413') })).status === 400, '21 ISBNs accepted');
+  });
+  await check('price: cross-origin POST → 403', async () => {
+    const r = await post({ isbns: ['9780134093413'] }, { Origin: 'https://evil.example' });
+    expect(r.status === 403, `got ${r.status}`);
+  });
+  await check('price: upstream key rejection → 200 with null offers, not a crash', async () => {
+    const r = await post({ isbns: ['9780134093413'] });
+    expect(r.status === 200, `got ${r.status}`);
+    const body = await r.json();
+    expect(body.offers['9780134093413'] === null, 'expected null offer');
+  });
+
+  delete process.env.BOOKSRUN_API_KEY;
+  await check('price: no key configured → 503', async () => {
+    const r = await post({ isbns: ['9780134093413'] });
+    expect(r.status === 503, `got ${r.status}`);
+  });
+}
+
 // ── Browser flow ────────────────────────────────────────────────────────────
 
 const sleep = (ms) => `await new Promise(r => setTimeout(r, ${ms}));`;
@@ -221,9 +257,10 @@ async function browserFlows(base) {
       expect(r.pending, 'figure should stay pending, not show a number');
     });
 
-    await check('flow: unpriced items → incomplete, no premature verdict', async () => {
+    await check('flow: unpriced items → incomplete with break-even guidance', async () => {
       const r = await page(pasteToVerdict([null, null]));
-      expect(r.panelText.includes('verdict appears here'), `panel: ${r.panelText.slice(0, 120)}`);
+      expect(r.panelText.includes('still need a price'), `panel: ${r.panelText.slice(0, 120)}`);
+      expect(r.panelText.includes('cost more than $210.00'), 'break-even threshold missing');
       expect(r.pending, 'figure should stay pending');
     });
 
@@ -270,6 +307,74 @@ async function browserFlows(base) {
       expect(r.backToInput, 'Back did not return to input');
       expect(r.editToConfirm, 'Edit my items did not return to confirm');
       expect(r.restartToInput, 'Start over did not return to input');
+    });
+
+    await check('flow: auto-filled offer lands on the receipt, and "change" overrides it', async () => {
+      // Intercept /api/price in the browser and answer with a fixed offer, so
+      // the auto-fill UI is tested deterministically and offline.
+      const mock = {
+        source: 'BooksRun',
+        fetchedAt: '2026-08-11T00:00:00.000Z',
+        offers: {
+          9780134093413: {
+            total: 48.99, price: 44.0, shipping: 4.99, kind: 'used', rentDays: null,
+            seller: 'Walker Bookstore', condition: 'VeryGood', url: 'https://booksrun.com/9780134093413',
+          },
+          9780134446417: null,
+        },
+      };
+      const { sessionId, targetId } = await newPage(cdp, `${base}/`, 1280);
+      await cdp.send('Fetch.enable', {
+        patterns: [{ urlPattern: '*/api/price', requestStage: 'Request' }],
+      }, sessionId);
+      const paused = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, `(async () => {
+        document.getElementById('units-input').value = '${UNITS}';
+        document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
+        document.getElementById('parse-text-btn').click();
+        ${sleep(250)}
+        document.getElementById('confirm-btn').click();
+        return true;
+      })()`);
+      const { requestId } = await paused;
+      await cdp.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(JSON.stringify(mock)).toString('base64'),
+      }, sessionId);
+      await new Promise((r) => setTimeout(r, 500));
+      const r1 = await evalIn(cdp, sessionId, `({
+        panelText: document.getElementById('verdict-panel').textContent.replace(/\\s+/g, ' '),
+        foundText: [...document.querySelectorAll('.price-found')].map((el) => el.textContent.replace(/\\s+/g, ' ')).join(' | '),
+        offerLink: document.querySelector('.price-found a')?.href ?? '',
+        manualVisible: [...document.querySelectorAll('.price-manual')].map((el) => !el.hidden),
+      })`);
+      expect(r1.foundText.includes('$48.99'), `found: ${r1.foundText}`);
+      expect(r1.foundText.includes('Walker Bookstore'), 'offer provenance missing');
+      expect(r1.offerLink === 'https://booksrun.com/9780134093413', `link: ${r1.offerLink}`);
+      expect(!r1.offerLink.includes('afk'), 'affiliate parameter leaked into UI');
+      expect(r1.panelText.includes('$48.99'), 'receipt missing the fetched price');
+      expect(r1.panelText.includes('cost more than $161.01'), `break-even wrong: ${r1.panelText.slice(0, 160)}`);
+      expect(r1.manualVisible.filter(Boolean).length === 1, 'unfound item should offer manual entry, found one should not');
+
+      const r2 = await evalIn(cdp, sessionId, `(async () => {
+        document.querySelector('[data-edit-idx]').click();
+        ${sleep(100)}
+        const input = document.querySelector('[data-price-idx="0"]');
+        const prefilled = input.value;
+        input.value = '500';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        ${sleep(200)}
+        return {
+          prefilled,
+          panelText: document.getElementById('verdict-panel').textContent.replace(/\\s+/g, ' '),
+        };
+      })()`);
+      expect(r2.prefilled === '48.99', `input should be prefilled with the offer, got ${r2.prefilled}`);
+      expect(r2.panelText.includes('bundle looks like the better deal'), 'user override should drive an early stay_in');
+      await cdp.send('Target.closeTarget', { targetId });
     });
 
     await check('flow: uploading a capture with no key shows the paste fallback, site keeps working', async () => {
@@ -319,11 +424,13 @@ if (!CHROME) {
   process.exit(2);
 }
 delete process.env.ANTHROPIC_API_KEY; // this file never makes a live model call
+delete process.env.BOOKSRUN_API_KEY; // nor a live price lookup
 
 const server = await startDevServer();
 const base = `http://127.0.0.1:${server.address().port}`;
 try {
   await apiContract(base);
+  await priceApiContract(base);
   await browserFlows(base);
 } finally {
   server.close();

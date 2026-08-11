@@ -147,6 +147,32 @@ async function runPath(cdp, base, name, file, expected) {
     console.log(`      parsed ${parsed.titles.length} item(s): ${parsed.titles.join(' | ')}`);
     if (parsed.warnings) console.log(`      warnings: ${parsed.warnings}`);
     problems = verify(name, expected, parsed);
+
+    // Stage 2: confirm → verdict, and watch the two price sources land —
+    // live fetched offers for books, capture-listed prices for access codes
+    // (the fixtures print a price beside every item).
+    await evalIn(cdp, sessionId, "document.getElementById('confirm-btn').click(); true");
+    let priced = null;
+    for (let i = 0; i < 30; i += 1) {
+      await nap(1000);
+      priced = await evalIn(cdp, sessionId, `({
+        step: document.body.dataset.step,
+        stillChecking: document.getElementById('verdict-items').textContent.includes('checking prices'),
+        capture: [...document.querySelectorAll('.price-found .price-src')]
+          .filter((el) => el.textContent.includes('your own capture')).length,
+        auto: [...document.querySelectorAll('.price-found .price-src')]
+          .filter((el) => el.textContent.includes('BooksRun')).length,
+      })`);
+      if (priced.step === 'verdict' && !priced.stillChecking) break;
+    }
+    console.log(`      prices: ${priced.auto} fetched live, ${priced.capture} from the capture`);
+    const expectedAccess = expected.filter((e) => e.access).length;
+    if (expectedAccess > 0 && priced.capture < 1) {
+      problems.push(`no access code picked up its capture-listed price (expected up to ${expectedAccess})`);
+    }
+    if (priced.auto < 1) {
+      problems.push('no live offer landed for any book');
+    }
   } else {
     problems = [state?.err ? `error surfaced: ${state.err}` : 'timed out waiting for parse'];
   }
