@@ -32,7 +32,7 @@ test('empty cart is opt_out even inside the close band — no price noise to abs
   assert.equal(v.difference, 21.0);
 });
 
-test("Stone's documented case: one $11.08 book vs $210 bundle → opt_out", () => {
+test('one $11.08 book vs $210 bundle → opt_out', () => {
   const v = computeVerdict([item({ userPrice: 11.08 })], 10, config);
   assert.equal(v.complete, true);
   assert.equal(v.recommendation, 'opt_out');

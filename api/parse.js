@@ -70,7 +70,7 @@ Extract every course material item that is actually visible. Rules:
 - format: "physical" for print books and rentals, "digital" for ebooks/eTexts, "access_code" for courseware and access codes (MyLab, MindTap, WebAssign, Connect, ALEKS, Revel, Achieve, zyBooks, and similar platforms).
 - Ignore any prices shown in the screenshot entirely — do not extract them.
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
-- Use warnings for anything the student should know (e.g. "the list appears cut off — there may be more items below").`;
+- Use warnings for anything the student should know (e.g. "the list appears cut off; there may be more items below").`;
 
 // The swappable model call: capture blocks in, ParseResult out. The request
 // shape deliberately uses only parameters valid on every current Claude model
