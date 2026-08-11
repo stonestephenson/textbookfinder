@@ -61,7 +61,7 @@ not a campaign: whichever number is lower wins.
 ## What the tool parses, and why you confirm it
 
 Input is your own bookstore course-materials page — one or more screenshots or a full-page PDF
-capture (read by a vision model on the server, which merges overlapping captures), or pasted
+capture (read by an automated reading service, which merges overlapping captures), or pasted
 text (parsed entirely in your browser by deterministic rules). Parsing is imperfect by nature,
 so:
 
@@ -93,8 +93,8 @@ A parse error therefore becomes a correction you make, never a silent wrong answ
 
 No accounts, no database, no analytics, no tracking. Pasted text never leaves your browser.
 Captures (screenshots or a full-page PDF) are sent once to the parsing endpoint, which forwards
-them to a third-party AI vision service to read the item list — course code, title, format,
-ISBN — and nothing else; this site stores neither the capture nor the result. (Handling by the
-AI provider is governed by its own data policies; this site vouches only for what it controls.)
+them to a third-party reading service to extract the item list — course code, title, format,
+ISBN — and nothing else; this site stores neither the capture nor the result. (Handling by that
+provider is governed by its own data policies; this site vouches only for what it controls.)
 The site's full source, including this file's history, is public in
 [the repository](https://github.com/stonestephenson/textbookfinder).
