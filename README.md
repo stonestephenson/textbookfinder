@@ -73,12 +73,37 @@ python3 -m http.server 8000     # from the repo root
 Pasted-text parsing and the whole flow work locally. Screenshot parsing requires the API
 function (below); without it the site degrades gracefully to paste/manual entry.
 
-Tests and checks (requires Node 18+):
+Tests and checks (requires Node 18+; the browser suites need Chrome installed):
 
 ```sh
-npm test              # unit tests for the verdict math and text parser
-bash .claude/verify.sh  # syntax-check all JS + run tests (the done-gate)
+npm test                 # unit tests for the verdict math and text parser
+bash .claude/verify.sh   # syntax-check all JS + run tests (the done-gate, sub-second)
+
+node checks/e2e.mjs      # full user journey in headless Chrome: paste → confirm →
+                         #   prices → all four verdict states, plus the /api/parse
+                         #   contract (validation, error, and no-key responses).
+                         #   Makes no model calls and needs no API key.
+node checks/design-audit.mjs   # the design-brief audit (spacing, contrast, copy rules)
+
+ANTHROPIC_API_KEY=sk-ant-... node checks/parse-live.mjs
+                         # the ONE test that calls the real model: renders synthetic
+                         #   course-materials fixtures, uploads them through the real
+                         #   UI as a screenshot, a tall scrolling screenshot, and a
+                         #   multi-page PDF, and checks the parsed items against
+                         #   ground truth. ~2–5 cents per run. Run before deploying
+                         #   and after changing api/parse.js or the capture pipeline.
 ```
+
+To click around the whole site locally with a live parse endpoint (what Vercel runs
+in production), use the dev server instead of `http.server`:
+
+```sh
+ANTHROPIC_API_KEY=sk-ant-... node checks/dev-server.mjs
+```
+
+None of the real bookstore's pages are used in any test fixture. The live test's fixtures
+are synthetic pages styled like a generic bookstore portal; testing against real carts is
+what the pre-launch student test is for.
 
 ## Deploying
 
