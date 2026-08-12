@@ -118,7 +118,9 @@ export async function newPage(cdp, url, width) {
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width, height: 1100, deviceScaleFactor: 1, mobile: width < 500,
   }, sessionId);
-  const load = cdp.waitEvent('Page.loadEventFired', sessionId);
+  // Generous timeout: on a loaded machine (or CI) a cold headless Chrome can
+  // take well over the default 10s to fire the first load event.
+  const load = cdp.waitEvent('Page.loadEventFired', sessionId, 30000);
   await cdp.send('Page.navigate', { url }, sessionId);
   await load;
   return { sessionId, targetId };

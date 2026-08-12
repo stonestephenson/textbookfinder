@@ -260,7 +260,7 @@ async function browserFlows(base) {
     await check('flow: unpriced items → incomplete with break-even guidance', async () => {
       const r = await page(pasteToVerdict([null, null]));
       expect(r.panelText.includes('still need a price'), `panel: ${r.panelText.slice(0, 120)}`);
-      expect(r.panelText.includes('cost more than $210.00'), 'break-even threshold missing');
+      expect(r.panelText.includes('cost more than $231.00'), 'break-even should include the close band');
       expect(r.pending, 'figure should stay pending');
     });
 
@@ -320,7 +320,12 @@ async function browserFlows(base) {
             total: 48.99, price: 44.0, shipping: 4.99, kind: 'used', rentDays: null,
             seller: 'Walker Bookstore', condition: 'VeryGood', url: 'https://booksrun.com/9780134093413',
           },
-          9780134446417: null,
+          // A USED offer for an access card: the client must refuse it — a
+          // used code is usually consumed. The item must stay manual.
+          9780134446417: {
+            total: 12.5, price: 8.51, shipping: 3.99, kind: 'used', rentDays: null,
+            seller: 'SketchySeller', condition: 'Good', url: 'https://booksrun.com/9780134446417',
+          },
         },
       };
       const { sessionId, targetId } = await newPage(cdp, `${base}/`, 1280);
@@ -356,8 +361,9 @@ async function browserFlows(base) {
       expect(r1.offerLink === 'https://booksrun.com/9780134093413', `link: ${r1.offerLink}`);
       expect(!r1.offerLink.includes('afk'), 'affiliate parameter leaked into UI');
       expect(r1.panelText.includes('$48.99'), 'receipt missing the fetched price');
-      expect(r1.panelText.includes('cost more than $161.01'), `break-even wrong: ${r1.panelText.slice(0, 160)}`);
-      expect(r1.manualVisible.filter(Boolean).length === 1, 'unfound item should offer manual entry, found one should not');
+      expect(r1.panelText.includes('cost more than $182.01'), `break-even wrong: ${r1.panelText.slice(0, 160)}`);
+      expect(!r1.foundText.includes('$12.50'), 'used offer must be refused for an access code');
+      expect(r1.manualVisible.filter(Boolean).length === 1, 'refused-offer item should offer manual entry, found one should not');
 
       const r2 = await evalIn(cdp, sessionId, `(async () => {
         document.querySelector('[data-edit-idx]').click();

@@ -30,10 +30,13 @@ them:
 1. **A fetched offer.** For items with an ISBN, the tool asks its price source (below) for real,
    currently purchasable offers and fills in the cheapest one, shipping included. The line names
    the store, the condition or rental length, and links to the offer so you can check it.
-2. **The price printed in your own capture** — access codes only. Stores don't sell single-use
-   codes used, so when your uploaded screenshot shows a listed price for one, that price is used
-   and labeled "listed in your own capture." Bookstore prices are **never** used for books this
-   way: a bookstore's book price is not a market price.
+2. **The price printed in your own capture** — access codes only. Stores don't usually sell
+   single-use codes used, so when your uploaded screenshot shows a real listed price for one,
+   that price is used and labeled "listed in your own capture." Guards: a printed "$0.00",
+   "included", or struck-through figure is bundle framing, not a price, and is never recorded;
+   an uncertain read is flagged instead of used; the value appears editable on the confirm
+   screen before anything is computed. Bookstore prices are **never** used for books this way:
+   a bookstore's book price is not a market price.
 3. **A number you typed.** Tap "change" on any line, or use the search links (Amazon, AbeBooks,
    eBay — by ISBN when your cart showed one, otherwise by title) for items nothing was found for.
    Your number always wins over a fetched one.
@@ -44,8 +47,9 @@ three above, and each is labeled in the UI with which one it is.
 ## Where the fetched prices come from
 
 The price source is **BooksRun** (booksrun.com), queried live by ISBN at the moment you confirm
-your list — the one free, documented purchase-price API available (`api/price.js`; selection
-logic in `api/pick-offer.js`, which is fully unit-tested). Selection rules:
+your list — the only free, documented purchase-price API the author found that permits plain,
+untagged links (`api/price.js`; selection logic in `api/pick-offer.js`, which is fully
+unit-tested). Selection rules:
 
 - Candidates are real purchasable offers: BooksRun's own used/new stock, its marketplace
   sellers' used/new stock, and rentals of **110 days or longer** (a fall or spring term,
@@ -53,6 +57,8 @@ logic in `api/pick-offer.js`, which is fully unit-tested). Selection rules:
   comparable; a 90-day rental that ends before finals is not, and is excluded even when
   cheaper.
 - Ebook offers are excluded: platform access isn't ownership and muddies the comparison.
+- For **access-code items, only new offers count**: a used or rented access card is usually
+  already consumed and worthless, so those offers are discarded even when cheapest.
 - The compared number is always **price plus shipping**.
 - Links go to plain product pages. The API returns affiliate-tagged cart links; the tags are
   deliberately stripped so this site earns nothing from any choice you make (CLAIMS.md #30).
@@ -62,8 +68,16 @@ don't offer usable price APIs (Amazon's requires an active affiliate relationshi
 tagged links, both incompatible with this site's no-earnings rule). A cheaper copy may therefore
 exist elsewhere — which means fetched totals are an **upper bound** on what a diligent shopper
 pays. An "opt out" verdict can only get stronger with better shopping; the direction of error
-runs toward "stay in," the conservative direction. Every item keeps its search links so you can
-beat the found price and type in what you find.
+runs toward "stay in," the conservative direction. The flip side is stated where it matters:
+because a cheaper copy elsewhere is exactly what could overturn a "stay in" or "it's close"
+call, those verdicts carry a visible reminder that prices came from one store and every item
+keeps its search links so you can beat the found price and type in what you find.
+
+Two limits on the upper-bound argument itself: it covers fetched **book** offers only — a
+capture-listed access-code price is your bookstore's listing, which can differ from the
+publisher's direct price (the UI says to check the publisher) — and it assumes a found offer is
+a genuine substitute, which is why used or rental offers are never accepted for access codes
+(a used code is usually already consumed).
 
 Offers are live inventory and can change between lookup and purchase. The verdict page says so,
 and no fetched price is stored anywhere.

@@ -51,12 +51,13 @@ const RESULT_SCHEMA = {
           confidence: {
             type: 'object',
             additionalProperties: false,
-            required: ['courseCode', 'title', 'format', 'isbn'],
+            required: ['courseCode', 'title', 'format', 'isbn', 'listedPrice'],
             properties: {
               courseCode: { enum: ['high', 'low'] },
               title: { enum: ['high', 'low'] },
               format: { enum: ['high', 'low'] },
               isbn: { enum: ['high', 'low'] },
+              listedPrice: { enum: ['high', 'low'] },
             },
           },
         },
@@ -72,7 +73,7 @@ Extract every course material item that is actually visible. Rules:
 - Report ONLY what you can read in the image. Never invent or complete an ISBN — if it isn't fully legible, set isbn to null and mark its confidence "low". A wrong ISBN is worse than no ISBN.
 - For each field you had to infer or that is partially cut off, set its confidence to "low". The student reviews and corrects everything you return, so "low" is a request for their attention, not a failure.
 - format: "physical" for print books and rentals, "digital" for ebooks/eTexts, "access_code" for courseware and access codes (MyLab, MindTap, WebAssign, Connect, ALEKS, Revel, Achieve, zyBooks, and similar platforms).
-- listedPrice: if a price is printed next to the item, record it as a plain number (no currency sign). If no price is legible for that item, set it to null. Never estimate, compute, or carry a price over from another item. Ignore page-level totals and "savings" figures entirely.
+- listedPrice: if a real price is printed next to the item, record it as a plain number (no currency sign). "$0.00", "included", "free", a struck-through price, or a bundle/rental label is NOT a listed price — record null for those. If no price is legible for that item, set it to null. Never estimate, compute, or carry a price over from another item. Ignore page-level totals and "savings" figures entirely. If the digits are partially obscured or you are not certain of the amount, set its confidence to "low".
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
 - Use warnings for anything the student should know (e.g. "the list appears cut off; there may be more items below").`;
 

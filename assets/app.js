@@ -59,7 +59,7 @@ function emptyItem() {
     offer: null, //  metadata of a fetched offer: kind, seller, rentDays, url, fetchedAt
     listedPrice: null, // price printed in the user's own capture, if any
     skipped: false,
-    confidence: { courseCode: 'high', title: 'high', format: 'high', isbn: 'high' },
+    confidence: { courseCode: 'high', title: 'high', format: 'high', isbn: 'high', listedPrice: 'high' },
   };
 }
 
@@ -77,7 +77,9 @@ function adoptItems(rawItems) {
       userPrice: null,
       priceSource: null,
       offer: null,
-      listedPrice: Number.isFinite(r.listedPrice) && r.listedPrice >= 0 && r.listedPrice <= 99999
+      // Strictly positive: a printed "$0.00" or "included" is bundle framing,
+      // not a price, and zero here would fake a cheap buy side.
+      listedPrice: Number.isFinite(r.listedPrice) && r.listedPrice > 0 && r.listedPrice <= 99999
         ? Math.round(r.listedPrice * 100) / 100 : null,
       skipped: false,
       confidence: {
@@ -85,6 +87,7 @@ function adoptItems(rawItems) {
         title: r.confidence?.title === 'high' ? 'high' : 'low',
         format: r.confidence?.format === 'high' ? 'high' : 'low',
         isbn: r.confidence?.isbn === 'high' ? 'high' : 'low',
+        listedPrice: r.confidence?.listedPrice === 'high' ? 'high' : 'low',
       },
     };
     recomputeAccessFlag(item);
@@ -381,7 +384,17 @@ function renderConfirm() {
             ${Object.entries(FORMAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.format === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
         </div>
-        ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, makes price links exact)', item.isbn)}
+        ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, used to look up a real price)', item.isbn)}
+        ${item.format === 'access_code' ? (() => {
+          const lowPrice = item.listedPrice != null && item.confidence.listedPrice === 'low';
+          return `<div class="field ${lowPrice ? 'low-confidence' : ''}">
+          <label for="f-${idx}-listedPrice">Price printed in your capture${lowPrice ? ' <span class="check-hint">(check this, the tool wasn&rsquo;t sure)</span>' : ' (optional)'}</label>
+          <input type="number" id="f-${idx}-listedPrice" data-idx="${idx}" data-field="listedPrice"
+            min="0" max="99999" step="0.01" inputmode="decimal" value="${item.listedPrice ?? ''}">
+          <span class="muted small">Codes are bought new, so this counts as this item&rsquo;s price
+            unless you change it later.</span>
+        </div>`;
+        })() : ''}
         <button type="button" class="btn-danger-text" data-remove="${idx}">Remove this item</button>
       </div>`;
     }).join('');
@@ -401,6 +414,13 @@ function wireConfirmStep() {
     const { field } = e.target.dataset;
     if (!Number.isInteger(idx) || !field || !state.items[idx]) return;
     const item = state.items[idx];
+    if (field === 'listedPrice') {
+      const val = Number(e.target.value);
+      item.listedPrice = e.target.value.trim() !== '' && Number.isFinite(val) && val > 0 && val <= 99999
+        ? Math.round(val * 100) / 100 : null;
+      item.confidence.listedPrice = 'high';
+      return;
+    }
     item[field] = e.target.value.trim() === '' && field !== 'title' ? null : e.target.value;
     item.confidence[field] = 'high'; // the user looked at it — it's theirs now
     if (field === 'format' || field === 'title') {
@@ -457,11 +477,22 @@ function wireConfirmStep() {
 
 // Access codes usually can't be bought used; the bookstore's own listed price
 // (read from the user's capture, when one was printed there) is the honest
-// number for them. Never applied to books — bookstore book prices aren't
-// market prices — and never over a price the user already set.
+// number for them. The gates are deliberate: format must actually be
+// access_code (a title-pattern match alone can flag a real book, and books
+// must never get bookstore prices), the price must be positive (a printed
+// "$0.00" is bundle framing, not a price), the read must be high-confidence,
+// and a price the user set always stands.
 function applyCapturePrices() {
   for (const it of state.items) {
-    if (it.isAccessCode && !it.skipped && it.userPrice == null && it.listedPrice != null) {
+    if (it.skipped) continue;
+    const eligible = it.format === 'access_code' && it.listedPrice != null && it.listedPrice > 0
+      && it.confidence.listedPrice === 'high';
+    if (it.priceSource === 'capture') {
+      // A re-confirm tracks the confirm screen's current value, including
+      // its removal or the format changing away from access code.
+      if (eligible) it.userPrice = it.listedPrice;
+      else { it.userPrice = null; it.priceSource = null; }
+    } else if (eligible && it.userPrice == null) {
       it.userPrice = it.listedPrice;
       it.priceSource = 'capture';
     }
@@ -474,7 +505,10 @@ function applyCapturePrices() {
 async function fetchPrices() {
   state.fetchSeq += 1;
   const seq = state.fetchSeq;
-  const want = state.items.filter((it) => !it.skipped && it.userPrice == null && (it.isbn ?? '').trim());
+  // Only plausible ISBNs go out: one malformed entry would 400 the whole
+  // batch server-side and silently kill the lookup for every item.
+  const isbnish = (s) => /^(\d{13}|\d{9}[\dXx])$/.test((s ?? '').replace(/[-\s]/g, ''));
+  const want = state.items.filter((it) => !it.skipped && it.userPrice == null && isbnish(it.isbn));
   if (!config.priceEndpoint || want.length === 0) {
     state.priceFetch = config.priceEndpoint ? 'idle' : 'unavailable';
     return;
@@ -493,8 +527,12 @@ async function fetchPrices() {
       outcome = 'done';
       for (const it of want) {
         const offer = body.offers[it.isbn.trim()];
+        if (!offer) continue;
+        // A used (or rented) access card is very often already consumed and
+        // worthless — for access codes only a NEW offer is an offer at all.
+        if (it.isAccessCode && offer.kind !== 'new') continue;
         // Re-check: the user may have typed a price while we were fetching.
-        if (offer && it.userPrice == null && !it.skipped) {
+        if (it.userPrice == null && !it.skipped) {
           it.userPrice = offer.total;
           it.priceSource = 'auto';
           it.offer = { ...offer, source: body.source ?? 'BooksRun', fetchedAt: body.fetchedAt ?? null };
@@ -552,7 +590,7 @@ function renderCompareFigure() {
     <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
       <span class="num">${fmt(config.pricePerUnit)}</span> per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
       &ldquo;Buying it yourself&rdquo; fills in from real offers found for your items, each one
-      linked and yours to change.</p>
+      labeled with where it came from and yours to change.</p>
     <p class="figure-deadline">${deadlineLine}</p>`;
 }
 
@@ -589,17 +627,24 @@ function renderVerdict() {
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    const autoCount = state.items.filter((it) => it.priceSource === 'auto' || it.priceSource === 'capture').length;
+    const active = state.items.filter((it) => !it.skipped);
+    const allAuto = active.length > 0 && active.every((it) => it.priceSource === 'auto');
+    const allPriced = active.length > 0 && active.every((it) => it.userPrice != null);
+    const foundCount = state.items.filter((it) => it.priceSource === 'auto' || it.priceSource === 'capture').length;
     const openCount = state.items.filter((it) => !it.skipped && it.userPrice == null && !priceLoading(it)).length;
     let intro = '';
     if (state.priceFetch === 'loading') {
       intro = 'Finding real prices for your items&hellip;';
-    } else if (autoCount > 0 && openCount === 0) {
+    } else if (allAuto) {
       intro = 'Every price below is a real offer, linked so you can check it. Not happy with one? Change it and the math follows your number.';
+    } else if (allPriced) {
+      intro = 'Prices are filled in below, each labeled with where it came from. Change any of them and the math follows your number.';
     } else if (openCount > 0) {
-      intro = `${autoCount > 0 ? 'Prices were found where possible. ' : ''}For the rest: open a link,
-        find your edition, and type the price you see. Links search by ISBN when your list showed
-        one, otherwise by title.`;
+      intro = foundCount > 0
+        ? `Prices were found where possible. For the rest: open a link, find your edition, and
+          type the price you see. Links search by ISBN when your list showed one, otherwise by title.`
+        : `Open a link, find your edition, and type the price you see. Links search by ISBN when
+          your list showed one, otherwise by title.`;
     }
     container.innerHTML = `<p class="muted small">${intro}</p>`
       + state.items.map((item, idx) => {
@@ -620,8 +665,15 @@ function renderVerdict() {
         <span class="item-state">${ICONS.good} priced</span>
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
         <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format]].filter(Boolean).join(' · '))}${item.isbn ? ` · ISBN <span class="num">${esc(item.isbn)}</span>` : ''}</div>
-        ${item.isAccessCode ? `<div class="badge" data-audit="access-flag">Single-use access code</div>
-          <div class="v-meta">Access codes usually can&rsquo;t be bought used.${found || item.userPrice != null ? '' : ' Check the publisher&rsquo;s own price for new access and enter that.'}</div>` : ''}
+        ${item.isAccessCode ? (() => {
+          // The publisher nudge stays visible for auto-found codes too: only
+          // a price from the user's own capture or their own typing quiets it.
+          let codeNote = '';
+          if (item.userPrice == null && !loading) codeNote = ' Check the publisher&rsquo;s own price for new access and enter that.';
+          else if (item.priceSource === 'auto') codeNote = ' The found offer is a new card, but the publisher&rsquo;s own site is the surest source. Worth checking its price too.';
+          return `<div class="badge" data-audit="access-flag">Single-use access code</div>
+          <div class="v-meta">Access codes usually can&rsquo;t be bought used.${codeNote}</div>`;
+        })() : ''}
         ${loading ? '<div class="price-found"><span class="price-src">checking prices&hellip;</span></div>' : ''}
         ${summary}
         <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
@@ -659,6 +711,17 @@ function renderVerdict() {
   updateVerdictPanel(true);
 }
 
+// When any counted price came from the lookup, verdicts that lean on those
+// prices being complete coverage (stay in, close) carry this reminder: one
+// store was searched, and a cheaper copy elsewhere would flip the direction
+// the coverage gap can actually err in.
+function oneSourceNote() {
+  return state.items.some((it) => it.priceSource === 'auto' && !it.skipped)
+    ? `<p class="verdict-detail">Found prices come from one store; a cheaper copy may exist
+      elsewhere. The links under each item let you check before you decide.</p>`
+    : '';
+}
+
 function updateVerdictPanel(animate = false) {
   const v = computeVerdict(state.items, state.units, config);
   const panel = $('verdict-panel');
@@ -689,14 +752,17 @@ function updateVerdictPanel(animate = false) {
       looked up right now. Anything the lookup can’t find, you can price by hand below.</p>`;
   } else if (v.recommendation === 'incomplete') {
     const remaining = v.totalCount - v.pricedCount - v.skippedCount;
+    // The bundle is only ever *called* the winner past the close band, so the
+    // honest threshold includes it (difference alone would land on "close").
+    const breakEven = Math.max(0, v.difference + (config.closeThreshold ?? config.pricePerUnit));
     headline = remaining === 1
       ? 'One item still needs a price.'
       : `${remaining} items still need a price.`;
     detail = `<p class="verdict-detail">So far: bundle <span class="num">${fmt(v.bundleCost)}</span> vs
-      <span class="num">${fmt(v.knownBuyTotal)}</span> found, ${basis}. For the bundle to come out
-      ahead, the remaining ${remaining === 1 ? 'item' : `${remaining} items together`} would have to
-      cost more than <span class="num">${fmt(v.difference)}</span>. The tool won’t call it until every
-      item has a price or is marked “couldn’t find it”.</p>`;
+      <span class="num">${fmt(v.knownBuyTotal)}</span> found, ${basis}. For this tool to call the
+      bundle the better deal, the remaining ${remaining === 1 ? 'item' : `${remaining} items together`}
+      would have to cost more than <span class="num">${fmt(breakEven)}</span>. It won’t call it until
+      every item has a price or is marked “couldn’t find it”.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
     headline = `Buying on your own looks cheaper. You’d keep <span class="num">${fmt(v.difference)}</span>.`;
@@ -710,14 +776,14 @@ function updateVerdictPanel(animate = false) {
     headline = `The bundle looks like the better deal. It saves you <span class="num">${fmt(Math.abs(v.difference))}</span>.`;
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy the items on your list,
       vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}. Staying in means doing nothing.
-      You’re enrolled by default.</p>`;
+      You’re enrolled by default.</p>${oneSourceNote()}`;
   } else {
     cls = 'v-close';
     headline = `It’s close: within <span class="num">${fmt(config.closeThreshold)}</span> either way.`;
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy vs <span class="num">${fmt(v.bundleCost)}</span>
       for the bundle, ${basis}. At this margin, think about the non-price factors: staying in is
-      one flat charge with nothing to hunt down; books you buy are yours to keep or resell; and
-      materials can be added to a course after you decide.</p>`;
+      one flat charge with nothing to hunt down; books you buy outright are yours to keep or
+      resell; and materials can be added to a course after you decide.</p>${oneSourceNote()}`;
   }
 
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0
