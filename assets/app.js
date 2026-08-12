@@ -391,8 +391,9 @@ function renderConfirm() {
           <label for="f-${idx}-listedPrice">Price printed in your capture${lowPrice ? ' <span class="check-hint">(check this, the tool wasn&rsquo;t sure)</span>' : ' (optional)'}</label>
           <input type="number" id="f-${idx}-listedPrice" data-idx="${idx}" data-field="listedPrice"
             min="0" max="99999" step="0.01" inputmode="decimal" value="${item.listedPrice ?? ''}">
-          <span class="muted small">Codes are bought new, so this counts as this item&rsquo;s price
-            unless you change it later.</span>
+          <span class="muted small">${lowPrice
+    ? 'Retype the number your capture shows to confirm it. Once you do, it counts as this item&rsquo;s price.'
+    : 'Codes are bought new, so this counts as this item&rsquo;s price unless you change it later.'}</span>
         </div>`;
         })() : ''}
         <button type="button" class="btn-danger-text" data-remove="${idx}">Remove this item</button>
@@ -655,7 +656,7 @@ function renderVerdict() {
         const summary = !found ? '' : (item.priceSource === 'auto'
           ? `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
               <span class="price-src">${esc(offerLabel(item.offer))} ·
-              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">see the offer&nbsp;&#8599;</a></span>
+              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">see it at the store&nbsp;&#8599;</a></span>
               <button type="button" class="linkish" data-edit-idx="${idx}">change</button></div>`
           : `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
               <span class="price-src">listed in your own capture</span>
@@ -761,8 +762,8 @@ function updateVerdictPanel(animate = false) {
     detail = `<p class="verdict-detail">So far: bundle <span class="num">${fmt(v.bundleCost)}</span> vs
       <span class="num">${fmt(v.knownBuyTotal)}</span> found, ${basis}. For this tool to call the
       bundle the better deal, the remaining ${remaining === 1 ? 'item' : `${remaining} items together`}
-      would have to cost more than <span class="num">${fmt(breakEven)}</span>. It won’t call it until
-      every item has a price or is marked “couldn’t find it”.</p>`;
+      would have to cost more than <span class="num">${fmt(breakEven)}</span>. It won’t call opting
+      out until every item has a price or is marked “couldn’t find it”.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
     headline = `Buying on your own looks cheaper. You’d keep <span class="num">${fmt(v.difference)}</span>.`;
