@@ -1050,8 +1050,8 @@ $('units-plus')?.addEventListener('click', () => nudgeUnits(1));
 // The slim deadline line riding under the tool (the verdict screen carries
 // its own fuller deadline note, so CSS hides this one there).
 $('screen-deadline').textContent = config.optOutDeadline
-  ? `Opt-out deadline for ${config.term}: ${formatDeadline(config.optOutDeadline)}, the last day of add/drop.`
-  : `Opting out closes at SSU’s add/drop deadline for ${config.term}. Check your bookstore portal for the exact date.`;
+  ? `Opt-out deadline: ${formatDeadline(config.optOutDeadline)}.`
+  : `Opt out by SSU’s add/drop deadline for ${config.term}.`;
 showStep('input'); // marks the stepper's starting position and renders the panel
 updateBill();
 
@@ -1068,12 +1068,9 @@ function detectDevice() {
 }
 
 const DEVICE_CAPTURE = {
-  ios: 'Take a screenshot, tap its preview, choose <strong>Full&nbsp;Page</strong>, save it as '
-    + 'a PDF, and add it here.',
-  android: 'Take a scrolling screenshot (<strong>Capture&nbsp;more</strong>) and add the long '
-    + 'image here.',
-  desktop: 'Select the whole page (<strong>Ctrl/Cmd&#8209;A</strong>), copy, and paste the text '
-    + '(link below). Screenshots work too.',
+  ios: 'Screenshot it (<strong>Full&nbsp;Page</strong> grabs the whole list) and add it below.',
+  android: 'Take a scrolling screenshot and add it below.',
+  desktop: 'Copy the whole page (<strong>Ctrl/Cmd&#8209;A</strong>) and paste it below.',
 };
 
 const device = detectDevice();
