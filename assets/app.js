@@ -488,6 +488,7 @@ function renderConfirm() {
             </select>
           </div>
           ${fieldHtml(item, idx, 'author', 'Author (optional, helps find the price)', item.author, 'placeholder="e.g. Sipser"')}
+          ${fieldHtml(item, idx, 'edition', 'Edition (optional, the year steers the match)', item.edition, 'placeholder="e.g. 3rd 2013"')}
           ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, used to look up a real price)', item.isbn)}
           ${item.format === 'access_code' ? (() => {
             const lowPrice = item.listedPrice != null && item.confidence.listedPrice === 'low';
@@ -531,6 +532,8 @@ function wireConfirmStep() {
     item[field] = e.target.value.trim() === '' && field !== 'title' ? null : e.target.value;
     item.confidence[field] = 'high'; // the user looked at it — it's theirs now
     if (field === 'isbn') item.resolved = null; // their ISBN, not our match
+    // A changed author/edition on an unmatched item earns a fresh attempt.
+    if ((field === 'author' || field === 'edition') && !isbnish(item.isbn)) item.resolved = null;
     if (field === 'format' || field === 'title') {
       recomputeAccessFlag(item);
       if (field === 'format') renderConfirm(); // badge + select state

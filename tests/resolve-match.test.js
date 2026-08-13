@@ -58,6 +58,7 @@ test('normalizeTitle expands bookstore shorthand', () => {
 
 test('editionYear reads portal edition markers', () => {
   assert.equal(editionYear('3RD 13'), 2013);
+  assert.equal(editionYear('3rd 2013'), 2013);
   assert.equal(editionYear('4TH 18'), 2018);
   assert.equal(editionYear('2005'), 2005);
   assert.equal(editionYear('REV 98'), 1998);

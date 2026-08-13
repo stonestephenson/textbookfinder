@@ -370,6 +370,8 @@ textarea {
   color: var(--ink);
 }
 .item-card input[data-field="courseCode"] { max-width: 12rem; }
+.item-card input[data-field="author"] { max-width: 14rem; }
+.item-card input[data-field="edition"] { max-width: 10rem; }
 .item-card input[data-field="isbn"] { max-width: 17rem; font-variant-numeric: tabular-nums; }
 .item-card input[data-field="listedPrice"] { max-width: 10rem; font-variant-numeric: tabular-nums; }
 .item-card select { max-width: 17rem; }
