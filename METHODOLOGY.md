@@ -82,6 +82,22 @@ a genuine substitute, which is why used or rental offers are never accepted for 
 Offers are live inventory and can change between lookup and purchase. The verdict page says so,
 and no fetched price is stored anywhere.
 
+## When your page shows no ISBN
+
+The bundle portal prints no ISBNs at all (verified on a real student capture). For an item that
+carries an author, the tool asks OpenLibrary's public catalog for a match and fills the ISBN in.
+The rules are deliberately strict (`api/resolve-match.js`, fully unit-tested):
+
+- **An author is required.** Title-only matching confidently picks wrong books (verified: a
+  title-only search for a theory-of-computation text returned a different author's textbook).
+  Items without an author simply stay on the manual path.
+- The author's surname must appear among the match's authors, and the titles must substantially
+  overlap after normalizing bookstore shorthand ("INTRO.TO", "(PB)").
+- When the page shows an edition year ("3RD 13"), a match from that year is preferred.
+- A weak match resolves to nothing rather than to a guess.
+- **Every match is shown on the confirm screen** ("Matched to …, wrong book? edit") before any
+  price is looked up against it, and the filled ISBN is editable like everything else.
+
 ## The recommendation rules
 
 Let `difference = bundle cost − buy total`.

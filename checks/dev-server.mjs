@@ -13,6 +13,7 @@
 import { startServer } from './lib/cdp.mjs';
 import parseHandler from '../api/parse.js';
 import priceHandler from '../api/price.js';
+import resolveHandler from '../api/resolve.js';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
@@ -44,6 +45,7 @@ export function startDevServer() {
   return startServer(ROOT, {
     '/api/parse': (req, res) => vercelStyle(parseHandler, req, res),
     '/api/price': (req, res) => vercelStyle(priceHandler, req, res),
+    '/api/resolve': (req, res) => vercelStyle(resolveHandler, req, res),
   });
 }
 

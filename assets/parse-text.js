@@ -86,7 +86,7 @@ function isTitleCandidate(line) {
 
 let nextId = 1;
 
-function makeItem({ courseCode, title, titleConfidence, format, formatConfidence, isbn }, accessRe) {
+function makeItem({ courseCode, title, titleConfidence, format, formatConfidence, isbn, author, edition }, accessRe) {
   const searchable = `${title ?? ''}`;
   const isAccessCode = format === 'access_code'
     || ACCESS_RE.test(searchable) || accessRe.test(searchable);
@@ -96,6 +96,8 @@ function makeItem({ courseCode, title, titleConfidence, format, formatConfidence
     title: title ?? null,
     format: isAccessCode ? 'access_code' : (format ?? 'unknown'),
     isbn: isbn ?? null,
+    author: author ?? null,
+    edition: edition ?? null,
     isAccessCode,
     userPrice: null,
     skipped: false,
@@ -117,7 +119,7 @@ function makeItem({ courseCode, title, titleConfidence, format, formatConfidence
 function parseBlock(lines, accessRe) {
   let courseCode = null;
   let blockFormat = null;
-  const segments = [{ titleLines: [], isbn: null, format: null, cartMarker: false, hasByline: false }];
+  const segments = [{ titleLines: [], isbn: null, format: null, cartMarker: false, hasByline: false, author: null, edition: null }];
   const current = () => segments[segments.length - 1];
 
   for (const line of lines) {
@@ -134,13 +136,21 @@ function parseBlock(lines, accessRe) {
       continue;
     }
     if (BYLINE_RE.test(line)) {
-      // An author byline right after a title is book evidence too.
-      if (current().titleLines.length > 0) current().hasByline = true;
+      // An author byline right after a title is book evidence, and carries
+      // the fields that make ISBN resolution reliable: author and edition.
+      if (current().titleLines.length > 0) {
+        current().hasByline = true;
+        const m = line.match(/^by[:\s]+([^|]+?)(?:\s*\|\s*edition[:\s]+(.+))?$/i);
+        if (m) {
+          current().author = current().author ?? m[1].trim();
+          current().edition = current().edition ?? ((m[2] ?? '').trim() || null);
+        }
+      }
       continue;
     }
     const isbn = findIsbn(line);
     if (isbn) {
-      if (current().isbn) segments.push({ titleLines: [], isbn, format: null, cartMarker: false, hasByline: false });
+      if (current().isbn) segments.push({ titleLines: [], isbn, format: null, cartMarker: false, hasByline: false, author: null, edition: null });
       else current().isbn = isbn;
       continue;
     }
@@ -152,7 +162,7 @@ function parseBlock(lines, accessRe) {
       continue;
     }
     if (isTitleCandidate(line)) {
-      if (current().isbn) segments.push({ titleLines: [line], isbn: null, format: null, cartMarker: false, hasByline: false });
+      if (current().isbn) segments.push({ titleLines: [line], isbn: null, format: null, cartMarker: false, hasByline: false, author: null, edition: null });
       else current().titleLines.push(line);
       if (fmt) {
         current().format = current().format ?? fmt;
@@ -179,6 +189,8 @@ function parseBlock(lines, accessRe) {
     format: seg.format ?? blockFormat,
     formatConfidence: seg.format ? 'high' : (blockFormat && !multi ? 'high' : 'low'),
     isbn: seg.isbn,
+    author: seg.author,
+    edition: seg.edition,
   }, accessRe));
 
   return { items, orphanedLines };
@@ -217,6 +229,8 @@ export function parseText(raw, config) {
       prev.isAccessCode = prev.isAccessCode || it.isAccessCode;
     }
     if (!prev.courseCode && it.courseCode) { prev.courseCode = it.courseCode; prev.confidence.courseCode = it.confidence.courseCode; }
+    if (!prev.author && it.author) prev.author = it.author;
+    if (!prev.edition && it.edition) prev.edition = it.edition;
   }
   if (items.length > 0 && orphaned.length > 0) {
     warnings.push(

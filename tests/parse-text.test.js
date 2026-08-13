@@ -221,6 +221,8 @@ Opt Out End Date
   assert.equal(items[0].confidence.format, 'high');
   assert.equal(items[0].isbn, null);
   assert.equal(items[0].isAccessCode, false);
+  assert.equal(items[0].author, 'SIPSER');
+  assert.equal(items[0].edition, '3RD 13');
   assert.ok(!warnings.some((w) => w.includes('welcome screen')), 'welcome warning must not fire when an item parsed');
 });
 

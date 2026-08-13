@@ -29,6 +29,7 @@ const esc = (s) => String(s ?? '')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 const fmt = (n) => `$${n.toFixed(2)}`;
+const isbnish = (s) => /^(\d{13}|\d{9}[\dXx])$/.test((s ?? '').replace(/[-\s]/g, ''));
 
 const FORMAT_LABELS = {
   physical: 'Physical book',
@@ -54,6 +55,9 @@ function emptyItem() {
     title: '',
     format: 'unknown',
     isbn: null,
+    author: null,
+    edition: null,
+    resolved: null, // ISBN found by title+author match: { title, author, year }
     isAccessCode: false,
     userPrice: null,
     priceSource: null, // 'auto' (fetched offer) | 'capture' (listed in upload) | 'user'
@@ -74,6 +78,9 @@ function adoptItems(rawItems) {
       title: r.title ?? '',
       format: ['physical', 'digital', 'access_code', 'unknown'].includes(r.format) ? r.format : 'unknown',
       isbn: r.isbn ?? null,
+      author: typeof r.author === 'string' && r.author.trim() ? r.author.trim() : null,
+      edition: typeof r.edition === 'string' && r.edition.trim() ? r.edition.trim() : null,
+      resolved: null,
       isAccessCode: false,
       userPrice: null,
       priceSource: null,
@@ -313,6 +320,7 @@ async function handleCaptureFiles(fileList) {
     renderConfirm();
     showStep('confirm');
     focusFirstUncertain();
+    resolveMissingIsbns();
   } catch {
     showInputError('Couldn’t read that capture. Paste the page text instead. That works entirely in your browser.');
   } finally {
@@ -334,6 +342,7 @@ function handlePastedText() {
   renderConfirm();
   showStep('confirm');
   focusFirstUncertain();
+  resolveMissingIsbns();
 }
 
 function wireInputStep() {
@@ -461,6 +470,9 @@ function renderConfirm() {
             <div class="v-meta">${esc(metaBits.join(' · '))}${item.format === 'access_code' && item.listedPrice != null
               ? ` · <span class="num">${fmt(item.listedPrice)}</span> printed in your capture` : ''}</div>
             ${item.isAccessCode ? '<p class="flag-row"><span class="badge" data-audit="access-flag">Single-use access code</span> <span class="small muted">usually can’t be bought used</span></p>' : ''}
+            ${item.resolved && item.isbn ? `<p class="small muted resolved-note">Matched to
+              ${esc(item.resolved.title)}${item.resolved.year ? ` (<span class="num">${item.resolved.year}</span>)` : ''}${item.resolved.author ? `, ${esc(item.resolved.author)}` : ''}.
+              Wrong book? <button type="button" class="linkish" data-toggle-fields="${idx}">edit</button></p>` : ''}
             ${lowAny ? '<p class="small check-hint">Check the highlighted fields, the tool wasn’t sure.</p>' : ''}
           </div>
           <button type="button" class="linkish item-edit-btn" data-toggle-fields="${idx}"
@@ -517,6 +529,7 @@ function wireConfirmStep() {
     }
     item[field] = e.target.value.trim() === '' && field !== 'title' ? null : e.target.value;
     item.confidence[field] = 'high'; // the user looked at it — it's theirs now
+    if (field === 'isbn') item.resolved = null; // their ISBN, not our match
     if (field === 'format' || field === 'title') {
       recomputeAccessFlag(item);
       if (field === 'format') renderConfirm(); // badge + select state
@@ -537,8 +550,11 @@ function wireConfirmStep() {
       const opening = !card.classList.contains('expanded');
       item.expandedUi = opening;
       card.classList.toggle('expanded', opening);
-      e.target.textContent = opening ? 'close' : 'edit';
-      e.target.setAttribute('aria-expanded', String(opening));
+      const mainBtn = card.querySelector('.item-edit-btn');
+      if (mainBtn) {
+        mainBtn.textContent = opening ? 'close' : 'edit';
+        mainBtn.setAttribute('aria-expanded', String(opening));
+      }
       if (opening) card.querySelector('input[data-field="title"]')?.focus();
     }
   });
@@ -600,6 +616,59 @@ function applyCapturePrices() {
   }
 }
 
+// The bundle portal prints no ISBNs. For items that carry an author (the
+// reliability requirement — title-only matching picks wrong books), ask the
+// resolve endpoint for a strong title+author match and fill the ISBN in,
+// labeled on the confirm screen so the user blesses the match before any
+// price hangs off it. Best-effort: silence on any failure.
+async function resolveMissingIsbns() {
+  if (!config.resolveEndpoint) return;
+  const targets = state.items.filter((it) => !it.skipped && !isbnish(it.isbn)
+    && (it.title ?? '').trim() && (it.author ?? '').trim() && !it.resolved);
+  if (targets.length === 0) return;
+  try {
+    const res = await fetch(config.resolveEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: targets.map((it) => ({ title: it.title, author: it.author, edition: it.edition })),
+      }),
+    });
+    const body = res.ok ? await res.json().catch(() => null) : null;
+    if (!body?.resolved) return;
+    let applied = 0;
+    targets.forEach((it, i) => {
+      const r = body.resolved[i];
+      // Apply only if the user hasn't supplied an ISBN in the meantime.
+      if (r?.isbn && !isbnish(it.isbn) && !it.skipped) {
+        it.isbn = r.isbn;
+        it.confidence.isbn = 'high';
+        it.resolved = { title: r.title, author: r.author, year: r.year };
+        applied += 1;
+      }
+    });
+    if (applied === 0) return;
+    if (state.step === 'confirm') {
+      // Re-render to show the match, preserving the user's focus and caret
+      // if they were mid-edit (every confirm field has a stable id).
+      const activeId = document.activeElement?.id || null;
+      let caret = null;
+      try { caret = document.activeElement?.selectionStart ?? null; } catch { /* number inputs */ }
+      renderConfirm();
+      if (activeId) {
+        const again = $(activeId);
+        if (again) {
+          again.focus();
+          try { if (caret != null) again.setSelectionRange(caret, caret); } catch { /* number inputs */ }
+        }
+      }
+    } else if (state.step === 'verdict') {
+      fetchPrices();
+      renderVerdict();
+    }
+  } catch { /* resolution is best-effort */ }
+}
+
 // Fetch real offers for items that have an ISBN and no price yet. Optional by
 // design: on any failure the flow silently stays manual, exactly as it was
 // before this endpoint existed. Requests carry ISBNs only.
@@ -608,7 +677,6 @@ async function fetchPrices() {
   const seq = state.fetchSeq;
   // Only plausible ISBNs go out: one malformed entry would 400 the whole
   // batch server-side and silently kill the lookup for every item.
-  const isbnish = (s) => /^(\d{13}|\d{9}[\dXx])$/.test((s ?? '').replace(/[-\s]/g, ''));
   const want = state.items.filter((it) => !it.skipped && it.userPrice == null && isbnish(it.isbn));
   if (!config.priceEndpoint || want.length === 0) {
     state.priceFetch = config.priceEndpoint ? 'idle' : 'unavailable';

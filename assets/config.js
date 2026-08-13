@@ -43,6 +43,12 @@ export const config = {
   // working, entirely in the browser.
   parseEndpoint: '/api/parse',
 
+  // Endpoint that matches title+author to an ISBN when the bookstore page
+  // shows none (see api/resolve.js; policy in METHODOLOGY.md). Set to null
+  // to disable — items without ISBNs simply stay on the manual price path.
+  // Sends item titles/authors only, nothing about the user.
+  resolveEndpoint: '/api/resolve',
+
   // Endpoint that fetches real purchase offers by ISBN (see api/price.js;
   // source and selection policy in METHODOLOGY.md). Set to null to disable —
   // price fields stay manual and the search links below still work. The

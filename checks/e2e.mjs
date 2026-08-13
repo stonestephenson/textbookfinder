@@ -152,6 +152,35 @@ async function priceApiContract(base) {
   });
 }
 
+async function resolveApiContract(base) {
+  const post = (body, headers = {}) => fetch(`${base}/api/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+
+  await check('resolve: GET is rejected with 405', async () => {
+    const r = await fetch(`${base}/api/resolve`);
+    expect(r.status === 405, `got ${r.status}`);
+  });
+  await check('resolve: malformed bodies → 400', async () => {
+    expect((await post({})).status === 400, 'empty body accepted');
+    expect((await post({ items: [] })).status === 400, 'empty list accepted');
+    expect((await post({ items: Array(11).fill({ title: 'x', author: 'y' }) })).status === 400, '11 items accepted');
+    expect((await post({ items: ['not-an-object'] })).status === 400, 'string entry accepted');
+  });
+  await check('resolve: cross-origin POST → 403', async () => {
+    const r = await post({ items: [{ title: 'x', author: 'y' }] }, { Origin: 'https://evil.example' });
+    expect(r.status === 403, `got ${r.status}`);
+  });
+  await check('resolve: authorless items resolve to null without an upstream call', async () => {
+    const r = await post({ items: [{ title: 'Some Book With No Author' }] });
+    expect(r.status === 200, `got ${r.status}`);
+    const body = await r.json();
+    expect(Array.isArray(body.resolved) && body.resolved[0] === null, 'expected [null]');
+  });
+}
+
 // ── Browser flow ────────────────────────────────────────────────────────────
 
 const sleep = (ms) => `await new Promise(r => setTimeout(r, ${ms}));`;
@@ -428,6 +457,62 @@ async function browserFlows(base) {
       await cdp.send('Target.closeTarget', { targetId });
     });
 
+    await check('flow: ISBN-less portal item resolves on confirm and prices on the verdict', async () => {
+      const PORTAL_TEXT = ['INCLUDED', 'Physical Item', 'INTRO.TO THEORY OF COMPUTATION (PB)', 'REQUIRED', '',
+        'INTRO.TO THEORY OF COMPUTATION (PB)', 'by SIPSER | Edition: 3RD 13'].join('\n');
+      const resolveMock = {
+        source: 'OpenLibrary',
+        resolved: [{ isbn: '9781133187790', isbn13s: ['9781133187790'], title: 'Introduction to the theory of computation', author: 'Michael Sipser', year: 2013 }],
+      };
+      const priceMock = {
+        source: 'BooksRun',
+        fetchedAt: '2026-08-12T00:00:00.000Z',
+        offers: {
+          9781133187790: {
+            total: 41.89, price: 41.89, shipping: 0, kind: 'used', rentDays: null,
+            seller: null, condition: null, url: 'https://booksrun.com/9781133187790',
+          },
+        },
+      };
+      const { sessionId, targetId } = await newPage(cdp, `${base}/`, 1280);
+      await cdp.send('Fetch.enable', {
+        patterns: [{ urlPattern: '*/api/resolve', requestStage: 'Request' }, { urlPattern: '*/api/price', requestStage: 'Request' }],
+      }, sessionId);
+      const fulfill = (requestId, body) => cdp.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(JSON.stringify(body)).toString('base64'),
+      }, sessionId);
+
+      const pausedResolve = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, `(async () => {
+        document.getElementById('text-input').value = ${JSON.stringify(PORTAL_TEXT)};
+        document.getElementById('go-btn').click();
+        return true;
+      })()`);
+      await fulfill((await pausedResolve).requestId, resolveMock);
+      await new Promise((r) => setTimeout(r, 400));
+      const confirm = await evalIn(cdp, sessionId, `({
+        itemsText: document.getElementById('items-list').textContent.replace(/\\s+/g, ' ').trim(),
+        isbnValue: document.querySelector('#items-list input[data-field="isbn"]')?.value ?? '',
+      })`);
+      expect(confirm.itemsText.includes('Matched to Introduction to the theory of computation'), `confirm: ${confirm.itemsText.slice(0, 160)}`);
+      expect(confirm.isbnValue === '9781133187790', `isbn field: ${confirm.isbnValue}`);
+
+      const pausedPrice = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, "document.getElementById('confirm-btn').click(); true");
+      await fulfill((await pausedPrice).requestId, priceMock);
+      await new Promise((r) => setTimeout(r, 500));
+      const verdict = await evalIn(cdp, sessionId, `({
+        foundText: [...document.querySelectorAll('.price-found')].map((el) => el.textContent.replace(/\\s+/g, ' ')).join(' | '),
+        panelText: document.getElementById('verdict-panel').textContent.replace(/\\s+/g, ' '),
+      })`);
+      expect(verdict.foundText.includes('$41.89'), `found: ${verdict.foundText}`);
+      expect(verdict.panelText.includes('$41.89'), 'receipt missing the resolved-then-priced amount');
+      await cdp.send('Target.closeTarget', { targetId });
+    });
+
     await check('flow: uploading a capture with no key shows the paste fallback, site keeps working', async () => {
       const pngPath = path.join(ROOT, 'checks/results', 'e2e-tiny.png');
       await mkdir(path.dirname(pngPath), { recursive: true });
@@ -487,6 +572,7 @@ const base = `http://127.0.0.1:${server.address().port}`;
 try {
   await apiContract(base);
   await priceApiContract(base);
+  await resolveApiContract(base);
   await browserFlows(base);
 } finally {
   server.close();
