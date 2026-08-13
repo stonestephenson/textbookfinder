@@ -760,6 +760,20 @@ function formatDeadline(iso) {
 }
 
 
+// The store's catalog address, built from the ISBN and the best title we
+// hold (their indexed pattern is /{isbn13}-{title-slug}; the router keys on
+// the ISBN). No referral parameters, ever (CLAIMS.md #30).
+function storeUrl(item) {
+  const isbn = (item.isbn ?? '').replace(/[-\s]/g, '');
+  if (!/^97[89]\d{10}$/.test(isbn)) return null;
+  const slug = (item.resolved?.title ?? item.title ?? '')
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug ? `https://booksrun.com/${isbn}-${slug}` : null;
+}
+
 // One line describing where a fetched offer came from, for the item row.
 function offerLabel(offer) {
   const kind = offer.kind === 'rent'
@@ -792,8 +806,8 @@ function renderVerdict() {
         const manualHidden = found || loading;
         const summary = !found ? '' : (item.priceSource === 'auto'
           ? `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
-              <span class="price-src">${esc(offerLabel(item.offer))}${item.offer.url ? ` ·
-              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">open this offer&nbsp;&#8599;</a>` : ''}</span>
+              <span class="price-src">${esc(offerLabel(item.offer))}${storeUrl(item) ? ` ·
+              <a href="${esc(storeUrl(item))}" target="_blank" rel="noopener noreferrer">view at the store&nbsp;&#8599;</a>` : ''}</span>
               <button type="button" class="linkish" data-edit-idx="${idx}">change</button></div>`
           : `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
               <span class="price-src">listed in your own capture</span>

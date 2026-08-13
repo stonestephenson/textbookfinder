@@ -60,9 +60,10 @@ unit-tested). Selection rules:
 - For **access-code items, only new offers count**: a used or rented access card is usually
   already consumed and worthless, so those offers are discarded even when cheapest.
 - The compared number is always **price plus shipping**.
-- Each offer links to itself at the store (the API's own offer URL). The affiliate tag the API
-  embeds in those links is deliberately stripped so this site earns nothing from any choice you
-  make (CLAIMS.md #30).
+- Each offer links to the store's catalog page for that ISBN (an address built from the ISBN
+  and title). The API's own offer links are session-bound cart actions carrying an affiliate
+  tag, so they are never used: no link on this site carries a referral parameter of any kind
+  (CLAIMS.md #30).
 
 **What this source does not cover, and which way that errs:** Amazon and other large retailers
 don't offer usable price APIs (Amazon's requires an active affiliate relationship and mandates

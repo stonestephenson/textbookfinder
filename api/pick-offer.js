@@ -12,9 +12,11 @@
 //   toward "stay in" — the conservative direction.
 // - The total always includes shipping. Cheapest total wins; ties prefer
 //   ownership (used/new) over rental.
-// - The link is the offer's own cart URL with the affiliate parameter the
-//   API embeds stripped off (CLAIMS.md #30): the API exposes no plain
-//   product page, and a constructed /{isbn} guess 404s (field-tested).
+// - No URL is returned here: the API only exposes session-bound cart-add
+//   links (field-tested to 404 outside their site) carrying affiliate tags.
+//   The client constructs the store's catalog address from ISBN + title
+//   (their indexed pattern is /{isbn13}-{title-slug}), with no referral
+//   parameters anywhere (CLAIMS.md #30).
 
 const MIN_RENT_DAYS = 110; // a fall/spring semester, first day to finals
 
@@ -89,13 +91,6 @@ export function pickOffer(response, isbn) {
   });
   const best = candidates[0];
 
-  // The offer's own URL, affiliate parameter stripped: this site earns
-  // nothing from any link (CLAIMS.md #30). No URL, no link.
-  let url = null;
-  if (typeof best.cartUrl === 'string' && best.cartUrl.startsWith('https://booksrun.com/')) {
-    url = best.cartUrl.split('?')[0];
-  }
-
   return {
     total: cents(best) / 100,
     price: Math.round(best.price * 100) / 100,
@@ -104,6 +99,5 @@ export function pickOffer(response, isbn) {
     rentDays: best.rentDays ?? null,
     seller: best.seller ?? null,
     condition: best.condition ?? null,
-    url,
   };
 }

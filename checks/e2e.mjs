@@ -431,7 +431,7 @@ async function browserFlows(base) {
       })`);
       expect(r1.foundText.includes('$48.99'), `found: ${r1.foundText}`);
       expect(r1.foundText.includes('Walker Bookstore'), 'offer provenance missing');
-      expect(r1.offerLink === 'https://booksrun.com/user/buy/cart/add/0134093413-11-1', `link: ${r1.offerLink}`);
+      expect(r1.offerLink === 'https://booksrun.com/9780134093413-campbell-biology', `link: ${r1.offerLink}`);
       expect(!r1.offerLink.includes('afk'), 'affiliate parameter leaked into UI');
       expect(r1.panelText.includes('$48.99'), 'receipt missing the fetched price');
       expect(r1.panelText.includes('cost more than $182.01'), `break-even wrong: ${r1.panelText.slice(0, 160)}`);
