@@ -188,3 +188,66 @@ test('unrecognizable text still gets the generic no-items message', () => {
   const { warnings } = parseText('lol random text\nnothing here at all', config);
   assert.ok(warnings[0].includes("Couldn't find any course materials"), warnings[0]);
 });
+
+test('real B&N portal paste: expanded course reveals the one included item, deduped, no ISBN', () => {
+  // Verbatim structure from a real student capture, 2026-08-12: markers
+  // around an all-caps title, no ISBN anywhere, the title printed twice.
+  const raw = `
+Hello Stone,
+Welcome to Seawolf Bundle!
+You are registered for 5 courses and have 1 included materials available.
+
+Be Ready For Your First Day Of Class
+Additional Faculty Required or Recommended Items
+Your instructor has added some materials you'll need that are not included in the Seawolf Bundle program.
+
+This course does not require any course materials
+INCLUDED
+Physical Item
+INTRO.TO THEORY OF COMPUTATION (PB)
+REQUIRED
+
+INTRO.TO THEORY OF COMPUTATION (PB)
+by SIPSER | Edition: 3RD 13
+
+Events Timeline
+Opt Out End Date
+ September 13, 2026
+`;
+  const { items, warnings } = parseText(raw, config);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, 'INTRO.TO THEORY OF COMPUTATION (PB)');
+  assert.equal(items[0].format, 'physical');
+  assert.equal(items[0].confidence.format, 'high');
+  assert.equal(items[0].isbn, null);
+  assert.equal(items[0].isAccessCode, false);
+  assert.ok(!warnings.some((w) => w.includes('welcome screen')), 'welcome warning must not fire when an item parsed');
+});
+
+test('a digital item chip classifies the format without an ISBN', () => {
+  const raw = `
+INCLUDED
+Digital Item
+CHEMISTRY: ATOMS FIRST (EBOOK)
+REQUIRED
+`;
+  const { items } = parseText(raw, config);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].format, 'digital');
+});
+
+test('dedupe never merges distinct titles', () => {
+  const raw = `
+INCLUDED
+Physical Item
+CALCULUS: EARLY TRANSCENDENTALS (HC)
+REQUIRED
+
+INCLUDED
+Physical Item
+LINEAR ALGEBRA DONE RIGHT (PB)
+REQUIRED
+`;
+  const { items } = parseText(raw, config);
+  assert.equal(items.length, 2);
+});

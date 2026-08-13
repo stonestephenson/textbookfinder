@@ -14,7 +14,7 @@ const COURSE_LINE_RE = /^([A-Za-z]{2,5})[\s-]?(\d{2,4}[A-Za-z]?)(\s+\d{1,3}[A-Za
 const LABELED_ISBN_RE = /isbn[^0-9x]*([0-9][0-9-\s]{7,20}[0-9Xx])/i;
 const BARE_ISBN13_RE = /\b(97[89][\d-\s]{10,16}\d)\b/;
 
-const PHYSICAL_RE = /\b(paperback|hardcover|hardback|loose-?leaf|spiral|rental|print(ed)?( book)?)\b/i;
+const PHYSICAL_RE = /\b(paperback|hardcover|hardback|loose-?leaf|spiral|rental|print(ed)?( book)?|physical)\b/i;
 const DIGITAL_RE = /\b(ebook|e-book|etext(book)?|digital|online access)\b/i;
 const ACCESS_RE = /\b(access code|access card|courseware)\b/i;
 const PRICE_LINE_RE = /\$\s?\d/;
@@ -51,7 +51,8 @@ function accessPatternRe(patterns) {
 function classifyFormat(text, accessRe) {
   if (ACCESS_RE.test(text) || accessRe.test(text)) return 'access_code';
   if (DIGITAL_RE.test(text)) return 'digital';
-  if (PHYSICAL_RE.test(text)) return 'physical';
+  // The B&N portal suffixes titles with binding codes: "(PB)", "(HC)".
+  if (PHYSICAL_RE.test(text) || /\((pb|hc|hb)\)/i.test(text)) return 'physical';
   return null;
 }
 
@@ -77,7 +78,9 @@ function isTitleCandidate(line) {
   if (PRICE_LINE_RE.test(line)) return false;
   if (BYLINE_RE.test(line)) return false;
   if (BUNDLE_LINE_RE.test(line)) return false;
-  if (/^(format|edition|publisher|author|required|optional|recommended)\b/i.test(line)) return false;
+  if (/^(format|edition|publisher|author|required|optional|recommended|included)\b/i.test(line)) return false;
+  if (/^(physical|digital) item\b/i.test(line)) return false;
+  if (/^this course does not/i.test(line)) return false;
   return true;
 }
 
@@ -114,7 +117,7 @@ function makeItem({ courseCode, title, titleConfidence, format, formatConfidence
 function parseBlock(lines, accessRe) {
   let courseCode = null;
   let blockFormat = null;
-  const segments = [{ titleLines: [], isbn: null, format: null }];
+  const segments = [{ titleLines: [], isbn: null, format: null, cartMarker: false, hasByline: false }];
   const current = () => segments[segments.length - 1];
 
   for (const line of lines) {
@@ -123,9 +126,21 @@ function parseBlock(lines, accessRe) {
       courseCode = `${courseMatch[1].toUpperCase()} ${courseMatch[2].toUpperCase()}`;
       continue;
     }
+    // Bundle-portal cart markers: a bare INCLUDED/REQUIRED/RECOMMENDED chip
+    // above or below a title marks a real cart item even without an ISBN
+    // (the portal prints none). Observed on a real student capture 2026-08-12.
+    if (/^(included|required|recommended)$/i.test(line)) {
+      current().cartMarker = true;
+      continue;
+    }
+    if (BYLINE_RE.test(line)) {
+      // An author byline right after a title is book evidence too.
+      if (current().titleLines.length > 0) current().hasByline = true;
+      continue;
+    }
     const isbn = findIsbn(line);
     if (isbn) {
-      if (current().isbn) segments.push({ titleLines: [], isbn, format: null });
+      if (current().isbn) segments.push({ titleLines: [], isbn, format: null, cartMarker: false, hasByline: false });
       else current().isbn = isbn;
       continue;
     }
@@ -133,10 +148,11 @@ function parseBlock(lines, accessRe) {
     if (fmt && !isTitleCandidate(line)) {
       current().format = current().format ?? fmt;
       blockFormat = blockFormat ?? fmt;
+      if (/^(physical|digital) item\b/i.test(line)) current().cartMarker = true;
       continue;
     }
     if (isTitleCandidate(line)) {
-      if (current().isbn) segments.push({ titleLines: [line], isbn: null, format: null });
+      if (current().isbn) segments.push({ titleLines: [line], isbn: null, format: null, cartMarker: false, hasByline: false });
       else current().titleLines.push(line);
       if (fmt) {
         current().format = current().format ?? fmt;
@@ -147,8 +163,10 @@ function parseBlock(lines, accessRe) {
 
   // Trailing ISBN-less segments in a multi-item block are too ambiguous to
   // turn into items — surface their lines as a warning instead of guessing.
+  // Cart-marker and byline evidence rescue the portal's ISBN-less format.
   const kept = segments.filter((seg, i) => seg.isbn
-    || (i === 0 && courseCode && seg.titleLines.length > 0));
+    || (i === 0 && courseCode && seg.titleLines.length > 0)
+    || ((seg.cartMarker || seg.hasByline) && seg.titleLines.length > 0));
   const orphanedLines = segments
     .filter((seg) => !kept.includes(seg))
     .flatMap((seg) => seg.titleLines);
@@ -177,8 +195,29 @@ export function parseText(raw, config) {
     .filter((b) => b.length > 0);
 
   const parsed = blocks.map((block) => parseBlock(block, accessRe));
-  const items = parsed.flatMap((p) => p.items);
+  const rawItems = parsed.flatMap((p) => p.items);
   const orphaned = parsed.flatMap((p) => p.orphanedLines);
+
+  // The portal prints each item twice (card header + detail block). Merge
+  // duplicates by normalized title, keeping the best-known fields.
+  const byTitle = new Map();
+  const items = [];
+  for (const it of rawItems) {
+    const key = (it.title ?? '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const prev = key ? byTitle.get(key) : null;
+    if (!prev) {
+      if (key) byTitle.set(key, it);
+      items.push(it);
+      continue;
+    }
+    if (!prev.isbn && it.isbn) { prev.isbn = it.isbn; prev.confidence.isbn = it.confidence.isbn; }
+    if (prev.format === 'unknown' && it.format !== 'unknown') {
+      prev.format = it.format;
+      prev.confidence.format = it.confidence.format;
+      prev.isAccessCode = prev.isAccessCode || it.isAccessCode;
+    }
+    if (!prev.courseCode && it.courseCode) { prev.courseCode = it.courseCode; prev.confidence.courseCode = it.confidence.courseCode; }
+  }
   if (items.length > 0 && orphaned.length > 0) {
     warnings.push(
       `Some pasted lines couldn't be attached to an item (e.g. “${orphaned[0]}”). `
