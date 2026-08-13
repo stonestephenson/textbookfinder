@@ -645,7 +645,7 @@ function verdictIntro() {
     return 'Every price below is a real offer, linked so you can check it. Not happy with one? Change it and the math follows your number.';
   }
   if (allPriced) {
-    return 'Prices are filled in below, each labeled with where it came from. Change any of them and the math follows your number.';
+    return 'Every item has a price: found ones name their store, typed ones are your own findings. Change any of them and the math follows your number.';
   }
   if (openCount > 0) {
     return foundCount > 0
@@ -818,7 +818,8 @@ function updateVerdictPanel(animate = false) {
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy vs <span class="num">${fmt(v.bundleCost)}</span>
       for the bundle, ${basis}. At this margin, think about the non-price factors: staying in is
       one flat charge with nothing to hunt down; books you buy outright are yours to keep or
-      resell; and materials can be added to a course after you decide.</p>${oneSourceNote()}`;
+      resell; materials can be added to a course after you decide; and opting out is not a
+      lockout, you can still buy anything later.</p>${oneSourceNote()}`;
   }
 
   const accessNote = v.accessCodeCount > 0 && state.items.length > 0

@@ -90,7 +90,7 @@ Let `difference = bundle cost − buy total`.
 |---|---|
 | Every item priced, `difference > $21.00` | **Opt out** — buying on your own looks cheaper by `difference` |
 | Every item priced, `difference < −$21.00` | **Stay in** — the bundle looks cheaper |
-| Every item priced, within **$21.00** either way | **It's close** — the tool refuses to call a winner and lists the non-price factors instead (staying in is one flat charge with nothing to hunt down; bought books are yours to keep or resell; materials can be added later) |
+| Every item priced, within **$21.00** either way | **It's close** — the tool refuses to call a winner and lists the non-price factors instead (staying in is one flat charge with nothing to hunt down; bought books are yours to keep or resell; materials can be added later; opting out is not a lockout) |
 | Some items not yet priced | **No verdict** — with one exception below |
 | Some items not yet priced, but the priced ones *already* exceed bundle cost by more than $21.00 | **Stay in**, early — adding more prices can only make buying more expensive, so this conclusion is safe before all prices are in. The reverse is never true: the tool will not recommend opting out until every item is priced or explicitly skipped |
 | Items marked "couldn't find it" | They are excluded from the buy total and the verdict says so ("based on N of M items"). A skipped item means the buy total is an **under**estimate, so any opt-out verdict is shown with an explicit caveat |

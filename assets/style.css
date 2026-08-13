@@ -605,5 +605,6 @@ input[type="checkbox"] { accent-color: var(--ink); width: 1.05rem; height: 1.05r
   font-size: 0.82rem;
   color: var(--grey);
   margin: 1.1rem 0 0;
+  max-width: 52ch; /* wraps as a block, not a widow */
 }
 body[data-step="verdict"] .screen-deadline { display: none; } /* the verdict carries its own */

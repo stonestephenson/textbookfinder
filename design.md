@@ -49,3 +49,24 @@ COPY RULES (these are correctness rules, not style)
 - Never phrase anything as what a course requires. Always "your cart shows."
 - Never display a price the tool didn't source.
 - Opt-out deadline is prominent on every screen.
+
+---
+
+## Addendum: the answer-first revision (2026-08-12, owner-approved)
+
+The owner redirected the flow to answer-first ("most users just want the answer"), which
+supersedes three lines above; everything else in this document still binds.
+
+- **The one-word answer (No. / Yes. / Close. / Almost. / Can't say.) is now the largest
+  element** on the verdict screen, not the difference figure. The figure stays on the
+  receipt's Difference line at receipt scale. All answer states keep identical color
+  treatment; the word carries `data-audit="verdict-figure"` so the audit's size check
+  follows it.
+- **A one-line hero exists on the landing step only** (title, one-sentence lede, the
+  units-to-bill row). On later steps it collapses to a small brand line so the answer
+  dominates.
+- **Motion expanded, deliberately**: cards slide in on step changes, the answer word
+  settles, receipt lines print in sequence. Everything remains disabled under
+  prefers-reduced-motion.
+- The long-form trust content lives on `why.html`; the deadline still appears on every
+  screen (slim line on input/confirm, action line + full note on the verdict).
