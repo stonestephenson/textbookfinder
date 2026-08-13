@@ -13,9 +13,12 @@
 
 import { pickResolution, normalizeTitle } from './resolve-match.js';
 
+// Vercel: allow the function to outlive a slow catalog query (default is 10s).
+export const maxDuration = 30;
+
 const MAX_ITEMS = 10;
 const CONCURRENCY = 3;
-const UPSTREAM_TIMEOUT_MS = 8_000;
+const UPSTREAM_TIMEOUT_MS = 12_000;
 const UA = 'istheseawolfbundleworthit.com (open source; see repository for contact)';
 
 async function resolveOne(item) {

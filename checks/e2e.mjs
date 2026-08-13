@@ -512,6 +512,62 @@ async function browserFlows(base) {
       await cdp.send('Target.closeTarget', { targetId });
     });
 
+    await check('flow: failed resolution offers a retry button that succeeds and prices', async () => {
+      const PORTAL_TEXT = ['INCLUDED', 'Physical Item', 'INTRO.TO THEORY OF COMPUTATION (PB)', 'REQUIRED', '',
+        'INTRO.TO THEORY OF COMPUTATION (PB)', 'by SIPSER | Edition: 3RD 13'].join('\n');
+      const nullResolve = { source: 'OpenLibrary', resolved: [null] };
+      const goodResolve = {
+        source: 'OpenLibrary',
+        resolved: [{ isbn: '9781133187790', isbn13s: ['9781133187790'], title: 'Introduction to the theory of computation', author: 'Michael Sipser', year: 2013 }],
+      };
+      const priceMock = {
+        source: 'BooksRun',
+        fetchedAt: '2026-08-13T00:00:00.000Z',
+        offers: { 9781133187790: { total: 41.89, price: 41.89, shipping: 0, kind: 'used', rentDays: null, seller: null, condition: null, url: 'https://booksrun.com/9781133187790' } },
+      };
+      const { sessionId, targetId } = await newPage(cdp, `${base}/`, 1280);
+      await cdp.send('Fetch.enable', {
+        patterns: [{ urlPattern: '*/api/resolve', requestStage: 'Request' }, { urlPattern: '*/api/price', requestStage: 'Request' }],
+      }, sessionId);
+      const fulfill = (requestId, body) => cdp.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(JSON.stringify(body)).toString('base64'),
+      }, sessionId);
+
+      // Attempt 1 fails; the automatic retry (2s later) fails too.
+      let paused = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, `(async () => {
+        document.getElementById('text-input').value = ${JSON.stringify(PORTAL_TEXT)};
+        document.getElementById('go-btn').click();
+        return true;
+      })()`);
+      await fulfill((await paused).requestId, nullResolve);
+      paused = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, "document.getElementById('confirm-btn').click(); true");
+      await fulfill((await paused).requestId, nullResolve); // the auto-retry
+      await new Promise((r) => setTimeout(r, 600));
+      const failed = await evalIn(cdp, sessionId, `({
+        hint: [...document.querySelectorAll('.price-manual p')].map((el) => el.textContent.replace(/\\s+/g, ' ').trim()).join(' | '),
+        hasRetry: Boolean(document.querySelector('[data-relookup]')),
+      })`);
+      expect(failed.hasRetry, `no retry button; hint was: ${failed.hint.slice(0, 140)}`);
+
+      // The tap: resolution succeeds, pricing follows.
+      paused = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await evalIn(cdp, sessionId, "document.querySelector('[data-relookup]').click(); true");
+      await fulfill((await paused).requestId, goodResolve);
+      paused = cdp.waitEvent('Fetch.requestPaused', sessionId, 15000);
+      await fulfill((await paused).requestId, priceMock);
+      await new Promise((r) => setTimeout(r, 600));
+      const done = await evalIn(cdp, sessionId, `({
+        foundText: [...document.querySelectorAll('.price-found')].map((el) => el.textContent.replace(/\\s+/g, ' ')).join(' | '),
+      })`);
+      expect(done.foundText.includes('$41.89'), `found: ${done.foundText}`);
+      await cdp.send('Target.closeTarget', { targetId });
+    });
+
     await check('flow: uploading a capture with no key shows the paste fallback, site keeps working', async () => {
       const pngPath = path.join(ROOT, 'checks/results', 'e2e-tiny.png');
       await mkdir(path.dirname(pngPath), { recursive: true });

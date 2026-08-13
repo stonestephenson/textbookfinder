@@ -123,6 +123,18 @@ export async function newPage(cdp, url, width) {
   const load = cdp.waitEvent('Page.loadEventFired', sessionId, 30000);
   await cdp.send('Page.navigate', { url }, sessionId);
   await load;
+  // Freeze transitions/animations on harness pages: color checks sampled
+  // mid-transition read interpolated values (a scheme flip transitions the
+  // button background for 160ms, which once measured as a contrast failure).
+  await cdp.send('Runtime.evaluate', {
+    expression: `(() => {
+      const st = document.createElement('style');
+      st.textContent = '* { transition: none !important; animation: none !important; }';
+      document.head.appendChild(st);
+      return true;
+    })()`,
+    returnByValue: true,
+  }, sessionId);
   return { sessionId, targetId };
 }
 
@@ -130,6 +142,10 @@ export async function setScheme(cdp, sessionId, scheme) {
   await cdp.send('Emulation.setEmulatedMedia', {
     features: [{ name: 'prefers-color-scheme', value: scheme }],
   }, sessionId);
+  // Force a style flush: measurements taken immediately after the switch
+  // occasionally read the previous scheme's computed colors.
+  await evalIn(cdp, sessionId,
+    'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))');
 }
 
 export async function evalIn(cdp, sessionId, expression) {

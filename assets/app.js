@@ -626,41 +626,50 @@ function applyCapturePrices() {
 // resolve endpoint for a strong title+author match and fill the ISBN in,
 // labeled on the confirm screen so the user blesses the match before any
 // price hangs off it. Best-effort: silence on any failure.
-async function resolveMissingIsbns(attempt = 1) {
-  if (!config.resolveEndpoint) return;
+let resolveInFlight = false;
+
+async function resolveMissingIsbns(maxAttempts = 2) {
+  if (!config.resolveEndpoint || resolveInFlight) return;
   const targets = state.items.filter((it) => !it.skipped && !isbnish(it.isbn)
     && (it.title ?? '').trim() && (it.author ?? '').trim() && !it.resolved);
   if (targets.length === 0) return;
+  resolveInFlight = true;
+  targets.forEach((it) => { it.resolving = true; });
+  if (state.step === 'verdict') renderVerdict(); // cards say "matching…" while in flight
+  let applied = 0;
   try {
-    const res = await fetch(config.resolveEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        items: targets.map((it) => ({ title: it.title, author: it.author, edition: it.edition })),
-      }),
-    });
-    const body = res.ok ? await res.json().catch(() => null) : null;
-    if (!body?.resolved) return;
-    let applied = 0;
-    targets.forEach((it, i) => {
-      const r = body.resolved[i];
-      // Apply only if the user hasn't supplied an ISBN in the meantime.
-      if (r?.isbn && !isbnish(it.isbn) && !it.skipped) {
-        it.isbn = r.isbn;
-        it.confidence.isbn = 'high';
-        it.resolved = { title: r.title, author: r.author, year: r.year };
-        applied += 1;
+    // A cold catalog query can outrun the server's upstream timeout; the
+    // second attempt hits a warm cache. One flight, internal retry.
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const res = await fetch(config.resolveEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: targets.map((it) => ({ title: it.title, author: it.author, edition: it.edition })),
+        }),
+      });
+      const body = res.ok ? await res.json().catch(() => null) : null;
+      if (body?.resolved) {
+        targets.forEach((it, i) => {
+          const r = body.resolved[i];
+          // Apply only if the user hasn't supplied an ISBN in the meantime.
+          if (r?.isbn && !isbnish(it.isbn) && !it.skipped) {
+            it.isbn = r.isbn;
+            it.confidence.isbn = 'high';
+            it.resolved = { title: r.title, author: r.author, year: r.year };
+            applied += 1;
+          }
+        });
+        // Anything matched, or a definitive miss on a warm query: done.
+        if (applied > 0 || !body.resolved.every((r) => !r?.isbn)) break;
       }
-    });
-    if (applied === 0) {
-      // A cold catalog query can outrun the server's upstream timeout; the
-      // second attempt hits a warm cache and usually lands. One retry only.
-      if (attempt < 2 && body.resolved.every((r) => !r?.isbn)) {
-        setTimeout(() => resolveMissingIsbns(attempt + 1), 1500);
-      }
-      return;
+      if (attempt < maxAttempts) await new Promise((r) => setTimeout(r, 2000));
     }
-    if (state.step === 'confirm') {
+  } catch { /* resolution is best-effort */ }
+  targets.forEach((it) => { it.resolving = false; });
+  resolveInFlight = false;
+  if (state.step === 'confirm') {
+    if (applied > 0) {
       // Re-render to show the match, preserving the user's focus and caret
       // if they were mid-edit (every confirm field has a stable id).
       const activeId = document.activeElement?.id || null;
@@ -674,11 +683,11 @@ async function resolveMissingIsbns(attempt = 1) {
           try { if (caret != null) again.setSelectionRange(caret, caret); } catch { /* number inputs */ }
         }
       }
-    } else if (state.step === 'verdict') {
-      fetchPrices();
-      renderVerdict();
     }
-  } catch { /* resolution is best-effort */ }
+  } else if (state.step === 'verdict') {
+    if (applied > 0) fetchPrices();
+    renderVerdict(); // prices coming, or the retry affordance restored
+  }
 }
 
 // Fetch real offers for items that have an ISBN and no price yet. Optional by
@@ -809,9 +818,11 @@ function renderVerdict() {
           <div class="retailer-links">${retailerLinks(item)}</div>` : ''}
         <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
           ${!item.skipped && item.userPrice == null && !isbnish(item.isbn)
-    ? `<p class="small muted">${(item.author ?? '').trim()
-      ? 'No confident match for this title, so no automatic price. Type one from a link below.'
-      : 'No ISBN or author to look this up with. Add one under Edit my items, or type a price from a link.'}</p>`
+    ? (item.resolving
+      ? '<p class="small muted">Matching this title to its book&hellip;</p>'
+      : `<p class="small muted">${(item.author ?? '').trim()
+        ? `Couldn&rsquo;t match this title just now. <button type="button" class="linkish" data-relookup="${idx}">Look it up again</button> or type a price from a link.`
+        : 'No ISBN or author to look this up with. Add one under Edit my items, or type a price from a link.'}</p>`)
     : ''}
           <div class="retailer-links">${retailerLinks(item)}</div>
           <div class="price-row">
@@ -980,6 +991,10 @@ function wireVerdictStep() {
   // "change" on a found price: the summary gives way to the manual row, and
   // from here on this line runs on the user's own number.
   $('verdict-items').addEventListener('click', (e) => {
+    if (e.target.dataset?.relookup !== undefined) {
+      resolveMissingIsbns(1); // one attempt per tap; cards show "matching…"
+      return;
+    }
     const idx = e.target.dataset?.editIdx;
     if (idx === undefined) return;
     const row = e.target.closest('.v-item');

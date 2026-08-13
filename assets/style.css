@@ -222,6 +222,12 @@ body[data-step]:not([data-step="input"]) .hero .hero-flow { display: none; }
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-hover); }
+/* Dark accent (#2997ff) is a link color, not a fill: white text on it sits
+   at 3.0:1. Fills keep the deeper blue so button text clears AA. */
+@media (prefers-color-scheme: dark) {
+  .btn-primary { background: #0071e3; }
+  .btn-primary:hover { background: #0068d1; }
+}
 .btn-big { font-size: 1.08rem; padding: 0.8rem 1.7rem; }
 .btn[disabled] { opacity: 0.5; cursor: default; }
 .btn-danger-text {

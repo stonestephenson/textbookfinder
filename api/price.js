@@ -18,6 +18,9 @@
 
 import { pickOffer } from './pick-offer.js';
 
+// Vercel: headroom for a large batch against a slow upstream (default 10s).
+export const maxDuration = 30;
+
 const MAX_ISBNS = 20;
 const CONCURRENCY = 4;
 const UPSTREAM_TIMEOUT_MS = 10_000;
