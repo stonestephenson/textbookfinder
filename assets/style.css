@@ -103,14 +103,25 @@ a:hover { text-decoration-color: var(--ink); }
 /* ── Landing: title, two-beat lede, then the instrument ───────────────── */
 
 .hero { padding: 2rem 0 0.4rem; }
-.hero h1 { margin: 0.3rem 0 0.7rem; }
+.hero h1 { margin: 0.3rem 0 0.7rem; transition: font-size 240ms ease, margin 240ms ease; }
 .hero .lede { color: var(--grey); max-width: 36em; margin: 0 0 1rem; }
 .hero .lede strong { color: var(--ink); }
+.eyebrow a { color: inherit; text-decoration: none; }
+.eyebrow a:hover { text-decoration: underline; }
+
+/* Past the first step the hero steps back to a quiet brand line: the answer,
+   not the pitch, owns the later screens. */
+body:not([data-step="input"]) .hero { padding-bottom: 0; }
+body:not([data-step="input"]) .hero h1 { font-size: 1.02rem; margin: 0 0 0.2rem; }
+body:not([data-step="input"]) .hero .eyebrow,
+body:not([data-step="input"]) .hero .hero-flow { display: none; }
 
 .figure-units {
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 0.9rem;
-  margin-bottom: 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0 0.4rem;
 }
 .bill-label { display: block; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.03em; color: var(--grey); margin-bottom: 0.55rem; }
 .bill-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
@@ -215,44 +226,6 @@ a:hover { text-decoration-color: var(--ink); }
 .lead { margin-top: 0.25rem; color: var(--grey); }
 .lead strong { color: var(--ink); }
 
-/* The pinned figure panel: bundle vs buying, plus the deadline that must be
-   visible on every screen. */
-.figure-panel {
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 1rem 1.15rem 0.7rem;
-  margin-bottom: 1.1rem;
-}
-.compare-figure { display: grid; gap: 0.85rem; }
-.compare-row { display: grid; gap: 0.3rem; }
-.compare-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--grey);
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-}
-.compare-label .val {
-  color: var(--ink);
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.95rem;
-}
-.compare-caption { font-size: 0.8rem; color: var(--grey); margin: 0.2rem 0 0; }
-.figure-deadline {
-  margin: 0.7rem 0 0;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--rule);
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--ink);
-}
-
 .tap-path { list-style: none; counter-reset: tap; padding: 0; margin: 1rem 0; display: grid; gap: 0.55rem; }
 .tap-path li { counter-increment: tap; display: flex; gap: 0.7rem; align-items: baseline; font-size: 0.95rem; }
 .tap-path li::before {
@@ -328,6 +301,18 @@ textarea {
 /* ── Confirm step ─────────────────────────────────────────────────────── */
 
 .item-card { border: 1px solid var(--rule); border-radius: var(--radius); padding: 1rem; margin: 0.8rem 0; }
+.item-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+.item-summary .v-title { font-weight: 600; }
+.item-summary .v-meta { color: var(--grey); font-size: 0.83rem; margin: 0.15rem 0 0; }
+.item-summary .flag-row { margin: 0.45rem 0 0; }
+.item-edit-btn { flex-shrink: 0; min-width: 44px; text-align: center; }
+.item-card .item-fields { display: none; }
+.item-card.expanded .item-fields {
+  display: block;
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.9rem;
+}
 .flag-row { margin: 0 0 0.7rem; display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
 .flag-row .badge { margin-bottom: 0; }
 .item-eyebrow {
@@ -433,9 +418,9 @@ textarea {
   margin-top: 0.6rem;
   padding-top: 0.7rem;
 }
-.receipt-line.r-total { padding: 0; align-items: flex-end; }
-.receipt-line.r-total .r-name { font-weight: 600; margin-bottom: 0.5rem; white-space: nowrap; }
-.receipt-line.r-total .r-dots { margin-bottom: 0.9rem; }
+.receipt-line.r-total { padding: 0; align-items: baseline; }
+.receipt-line.r-total .r-name { font-weight: 600; white-space: nowrap; }
+.receipt-line.r-total .r-dots { align-self: center; }
 
 @media (max-width: 480px) {
   /* The figure needs the full width on phones; the label takes its own line. */
@@ -444,33 +429,41 @@ textarea {
   .receipt-line.r-total .r-name { margin-bottom: 0.15rem; }
 }
 
-/* The verdict screen's numbers live in the receipt; the progress bars serve
-   the earlier screens. */
-body[data-step="verdict"] .figure-panel { display: none; }
-.verdict-figure {
+/* The answer block: the site's whole job, said in one word. */
+.answer-block { text-align: center; padding: 1.2rem 0 1.8rem; }
+.answer-word {
+  font-weight: 800;
+  font-size: clamp(3.8rem, 15vw, 6.5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.8rem;
+}
+.answer-word.settle { animation: settle 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.answer-sub { font-size: 1.15rem; font-weight: 600; line-height: 1.45; max-width: 26em; margin: 0 auto 0.4rem; }
+.answer-action { font-size: 0.95rem; color: var(--grey); margin: 0 auto; max-width: 30em; }
+.answer-action strong { color: var(--ink); }
+
+/* The Difference line keeps receipt scale; the word above carries the size. */
+.receipt-diff {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  font-size: clamp(3.25rem, 10vw, 5.25rem);
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: 1.35rem;
+  line-height: 1.1;
   margin: 0;
   text-align: right;
 }
-.verdict-figure.settle { animation: settle 340ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-/* Pending total: a blank line at figure scale where the number will print. */
 .fig-pending {
   display: inline-block;
   width: 4.5ch;
   height: 0.72em;
-  border-bottom: 4px solid var(--grey);
+  border-bottom: 3px solid var(--grey);
 }
 @keyframes settle {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.verdict-headline { font-size: 1.05rem; font-weight: 600; line-height: 1.4; margin: 0.7rem 0 0.4rem; }
 .verdict-detail { margin: 0.35rem 0; font-size: 0.95rem; }
 
 .price-progress { font-size: 0.88rem; font-weight: 600; color: var(--grey); margin: 1rem 0 0.2rem; }
@@ -571,7 +564,7 @@ input[type="checkbox"] { accent-color: var(--ink); width: 1.05rem; height: 1.05r
 .site-footer a { color: var(--ink); }
 
 @media (min-width: 700px) {
-  .card, .figure-panel { padding-left: 1.6rem; padding-right: 1.6rem; }
+  .card { padding-left: 1.6rem; padding-right: 1.6rem; }
 }
 
 @media (max-width: 480px) {
@@ -579,3 +572,38 @@ input[type="checkbox"] { accent-color: var(--ink); width: 1.05rem; height: 1.05r
   .card { padding-left: 0.9rem; padding-right: 0.9rem; }
   .item-card { padding: 0.85rem 0.75rem; }
 }
+
+/* ── Motion (all of it disabled by the reduced-motion block above) ─────── */
+
+/* Cards slide in as steps change; the answer word settles on top of that. */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card.step-enter { animation: cardIn 340ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Receipt lines print in sequence, like a receipt. */
+@keyframes lineIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.receipt-lines.reveal .receipt-line { animation: lineIn 300ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.receipt-lines.reveal .receipt-line:nth-child(2) { animation-delay: 70ms; }
+.receipt-lines.reveal .receipt-line:nth-child(3) { animation-delay: 140ms; }
+.receipt-lines.reveal .receipt-line:nth-child(4) { animation-delay: 210ms; }
+.receipt-lines.reveal .receipt-line:nth-child(5) { animation-delay: 280ms; }
+.receipt-lines.reveal .receipt-line:nth-child(n+6) { animation-delay: 350ms; }
+
+/* ── Small furnishings for the simplified flow ─────────────────────────── */
+
+.btn-big { padding: 0.85rem 1.7rem; font-size: 1.05rem; }
+
+.card-answer { padding-top: 2rem; }
+
+.screen-deadline {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--grey);
+  margin: 1.1rem 0 0;
+}
+body[data-step="verdict"] .screen-deadline { display: none; } /* the verdict carries its own */

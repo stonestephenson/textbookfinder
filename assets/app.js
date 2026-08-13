@@ -6,6 +6,7 @@
 import { config } from './config.js';
 import { parseText } from './parse-text.js';
 import { computeVerdict } from './verdict.js';
+import './bind.js'; // config values + verified links into static copy
 
 const state = {
   step: 'input',
@@ -108,8 +109,13 @@ function showStep(step) {
     n.classList.toggle('active', n.dataset.step === step);
     n.classList.toggle('done', i > -1 && i < STEP_ORDER.indexOf(step));
   });
-  // Off the verdict step, the figure returns to its honest unmeasured state.
-  if (step !== 'verdict') renderCompareFigure(null);
+  // Re-trigger the entrance animation on the newly shown card.
+  const shown = $(`step-${step}`);
+  if (shown) {
+    shown.classList.remove('step-enter');
+    void shown.offsetWidth; // restart the CSS animation
+    shown.classList.add('step-enter');
+  }
   if (step !== 'input') $('tool').scrollIntoView?.({ behavior: 'smooth' });
 }
 
@@ -372,31 +378,50 @@ function renderConfirm() {
   } else {
     list.innerHTML = state.items.map((item, idx) => {
       const lowFormat = item.confidence.format === 'low';
+      const lowAny = ['title', 'courseCode', 'format', 'isbn'].some((f) => item.confidence[f] === 'low')
+        || (item.format === 'access_code' && item.listedPrice != null && item.confidence.listedPrice === 'low');
+      // A quick checklist row per item; the full fields stay in the DOM but
+      // open only when something needs attention or the user asks. An item
+      // the parser wasn't sure about, or an empty manual one, opens itself.
+      const open = lowAny || !(item.title ?? '').trim() || item.expandedUi === true;
+      const metaBits = [item.courseCode, FORMAT_LABELS[item.format],
+        item.isbn ? `ISBN ${item.isbn}` : null].filter(Boolean);
       return `
-      <div class="item-card" data-item-id="${esc(item.id)}">
-        <p class="item-eyebrow">Item <span class="num">${idx + 1}</span> of <span class="num">${state.items.length}</span></p>
-        ${item.isAccessCode ? '<p class="flag-row"><span class="badge" data-audit="access-flag">Single-use access code</span> <span class="small muted">usually can’t be bought used</span></p>' : ''}
-        ${fieldHtml(item, idx, 'title', 'Title', item.title)}
-        ${fieldHtml(item, idx, 'courseCode', 'Course (optional)', item.courseCode, 'placeholder="e.g. CS 454"')}
-        <div class="field ${lowFormat ? 'low-confidence' : ''}">
-          <label for="f-${idx}-format">Format${lowFormat ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
-          <select id="f-${idx}-format" data-idx="${idx}" data-field="format">
-            ${Object.entries(FORMAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.format === v ? 'selected' : ''}>${l}</option>`).join('')}
-          </select>
+      <div class="item-card${open ? ' expanded' : ''}" data-item-id="${esc(item.id)}">
+        <div class="item-summary">
+          <div class="item-summary-text">
+            <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
+            <div class="v-meta">${esc(metaBits.join(' · '))}${item.format === 'access_code' && item.listedPrice != null
+              ? ` · <span class="num">${fmt(item.listedPrice)}</span> printed in your capture` : ''}</div>
+            ${item.isAccessCode ? '<p class="flag-row"><span class="badge" data-audit="access-flag">Single-use access code</span> <span class="small muted">usually can’t be bought used</span></p>' : ''}
+            ${lowAny ? '<p class="small check-hint">Check the highlighted fields, the tool wasn’t sure.</p>' : ''}
+          </div>
+          <button type="button" class="linkish item-edit-btn" data-toggle-fields="${idx}"
+            aria-expanded="${open}">${open ? 'close' : 'edit'}</button>
         </div>
-        ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, used to look up a real price)', item.isbn)}
-        ${item.format === 'access_code' ? (() => {
-          const lowPrice = item.listedPrice != null && item.confidence.listedPrice === 'low';
-          return `<div class="field ${lowPrice ? 'low-confidence' : ''}">
-          <label for="f-${idx}-listedPrice">Price printed in your capture${lowPrice ? ' <span class="check-hint">(check this, the tool wasn&rsquo;t sure)</span>' : ' (optional)'}</label>
-          <input type="number" id="f-${idx}-listedPrice" data-idx="${idx}" data-field="listedPrice"
-            min="0" max="99999" step="0.01" inputmode="decimal" value="${item.listedPrice ?? ''}">
-          <span class="muted small">${lowPrice
+        <div class="item-fields">
+          ${fieldHtml(item, idx, 'title', 'Title', item.title)}
+          ${fieldHtml(item, idx, 'courseCode', 'Course (optional)', item.courseCode, 'placeholder="e.g. CS 454"')}
+          <div class="field ${lowFormat ? 'low-confidence' : ''}">
+            <label for="f-${idx}-format">Format${lowFormat ? ' <span class="check-hint">(check this, the tool wasn’t sure)</span>' : ''}</label>
+            <select id="f-${idx}-format" data-idx="${idx}" data-field="format">
+              ${Object.entries(FORMAT_LABELS).map(([v, l]) => `<option value="${v}" ${item.format === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
+          ${fieldHtml(item, idx, 'isbn', 'ISBN (optional, used to look up a real price)', item.isbn)}
+          ${item.format === 'access_code' ? (() => {
+            const lowPrice = item.listedPrice != null && item.confidence.listedPrice === 'low';
+            return `<div class="field ${lowPrice ? 'low-confidence' : ''}">
+            <label for="f-${idx}-listedPrice">Price printed in your capture${lowPrice ? ' <span class="check-hint">(check this, the tool wasn&rsquo;t sure)</span>' : ' (optional)'}</label>
+            <input type="number" id="f-${idx}-listedPrice" data-idx="${idx}" data-field="listedPrice"
+              min="0" max="99999" step="0.01" inputmode="decimal" value="${item.listedPrice ?? ''}">
+            <span class="muted small">${lowPrice
     ? 'Retype the number your capture shows to confirm it. Once you do, it counts as this item&rsquo;s price.'
     : 'Codes are bought new, so this counts as this item&rsquo;s price unless you change it later.'}</span>
-        </div>`;
-        })() : ''}
-        <button type="button" class="btn-danger-text" data-remove="${idx}">Remove this item</button>
+          </div>`;
+          })() : ''}
+          <button type="button" class="btn-danger-text" data-remove="${idx}">Remove this item</button>
+        </div>
       </div>`;
     }).join('');
   }
@@ -415,6 +440,7 @@ function wireConfirmStep() {
     const { field } = e.target.dataset;
     if (!Number.isInteger(idx) || !field || !state.items[idx]) return;
     const item = state.items[idx];
+    item.expandedUi = true; // editing keeps the card open across re-renders
     if (field === 'listedPrice') {
       const val = Number(e.target.value);
       item.listedPrice = e.target.value.trim() !== '' && Number.isFinite(val) && val > 0 && val <= 99999
@@ -435,17 +461,24 @@ function wireConfirmStep() {
     if (removeIdx !== undefined) {
       state.items.splice(Number(removeIdx), 1);
       renderConfirm();
+      return;
+    }
+    const toggleIdx = e.target.dataset?.toggleFields;
+    if (toggleIdx !== undefined) {
+      const item = state.items[Number(toggleIdx)];
+      const card = e.target.closest('.item-card');
+      const opening = !card.classList.contains('expanded');
+      item.expandedUi = opening;
+      card.classList.toggle('expanded', opening);
+      e.target.textContent = opening ? 'close' : 'edit';
+      e.target.setAttribute('aria-expanded', String(opening));
+      if (opening) card.querySelector('input[data-field="title"]')?.focus();
     }
   });
 
   $('add-item-btn').addEventListener('click', () => {
     state.items.push(emptyItem());
     renderConfirm();
-  });
-
-  // Keep the pinned figure agreeing with the confirm-step units field live.
-  $('confirm-units-row').addEventListener('input', (e) => {
-    if (e.target.id === 'confirm-units-input') renderCompareFigure(null);
   });
 
   $('back-btn').addEventListener('click', () => showStep('input'));
@@ -571,30 +604,6 @@ function formatDeadline(iso) {
 }
 
 
-// The pinned instrument. Pass a verdict for live totals; pass null before the
-// user has confirmed anything and it shows the bundle bar with the buying bar
-// honestly unmeasured.
-// The panel's ledger preview. The bundle amount lives once, in the bill
-// sentence above; this line holds the place the user's own total will fill.
-// (On the verdict step the panel is hidden and the receipt takes over.)
-function renderCompareFigure() {
-  const el = $('compare-figure');
-  const deadlineLine = config.optOutDeadline
-    ? `Opt-out deadline: ${esc(formatDeadline(config.optOutDeadline))}`
-    : `Opt out by SSU&rsquo;s add/drop deadline for ${esc(config.term)}`;
-
-  el.innerHTML = `
-    <div class="compare-row">
-      <div class="compare-label"><span>Buying it yourself</span>
-        <span class="val muted">not measured yet</span></div>
-    </div>
-    <p class="compare-caption">Using ${esc(config.term)}&rsquo;s published rate of
-      <span class="num">${fmt(config.pricePerUnit)}</span> per unit (<a href="${esc(config.claimsUrl)}">sources</a>).
-      &ldquo;Buying it yourself&rdquo; fills in from real offers found for your items, each one
-      labeled with where it came from and yours to change.</p>
-    <p class="figure-deadline">${deadlineLine}</p>`;
-}
-
 function updatePriceProgress(v) {
   const el = $('price-progress');
   if (!el) return;
@@ -623,31 +632,37 @@ function priceLoading(item) {
     && item.userPrice == null && Boolean((item.isbn ?? '').trim());
 }
 
+function verdictIntro() {
+  const active = state.items.filter((it) => !it.skipped);
+  const allAuto = active.length > 0 && active.every((it) => it.priceSource === 'auto');
+  const allPriced = active.length > 0 && active.every((it) => it.userPrice != null);
+  const foundCount = state.items.filter((it) => it.priceSource === 'auto' || it.priceSource === 'capture').length;
+  const openCount = state.items.filter((it) => !it.skipped && it.userPrice == null && !priceLoading(it)).length;
+  if (state.priceFetch === 'loading') {
+    return 'Finding real prices for your items&hellip;';
+  }
+  if (allAuto) {
+    return 'Every price below is a real offer, linked so you can check it. Not happy with one? Change it and the math follows your number.';
+  }
+  if (allPriced) {
+    return 'Prices are filled in below, each labeled with where it came from. Change any of them and the math follows your number.';
+  }
+  if (openCount > 0) {
+    return foundCount > 0
+      ? `Prices were found where possible. For the rest: open a link, find your edition, and
+        type the price you see. Links search by ISBN when your list showed one, otherwise by title.`
+      : `Open a link, find your edition, and type the price you see. Links search by ISBN when
+        your list showed one, otherwise by title.`;
+  }
+  return '';
+}
+
 function renderVerdict() {
   const container = $('verdict-items');
   if (state.items.length === 0) {
     container.innerHTML = '';
   } else {
-    const active = state.items.filter((it) => !it.skipped);
-    const allAuto = active.length > 0 && active.every((it) => it.priceSource === 'auto');
-    const allPriced = active.length > 0 && active.every((it) => it.userPrice != null);
-    const foundCount = state.items.filter((it) => it.priceSource === 'auto' || it.priceSource === 'capture').length;
-    const openCount = state.items.filter((it) => !it.skipped && it.userPrice == null && !priceLoading(it)).length;
-    let intro = '';
-    if (state.priceFetch === 'loading') {
-      intro = 'Finding real prices for your items&hellip;';
-    } else if (allAuto) {
-      intro = 'Every price below is a real offer, linked so you can check it. Not happy with one? Change it and the math follows your number.';
-    } else if (allPriced) {
-      intro = 'Prices are filled in below, each labeled with where it came from. Change any of them and the math follows your number.';
-    } else if (openCount > 0) {
-      intro = foundCount > 0
-        ? `Prices were found where possible. For the rest: open a link, find your edition, and
-          type the price you see. Links search by ISBN when your list showed one, otherwise by title.`
-        : `Open a link, find your edition, and type the price you see. Links search by ISBN when
-          your list showed one, otherwise by title.`;
-    }
-    container.innerHTML = `<p class="muted small">${intro}</p>`
+    container.innerHTML = `<p class="muted small" id="verdict-intro">${verdictIntro()}</p>`
       + state.items.map((item, idx) => {
         const found = !item.skipped && item.userPrice != null
           && (item.priceSource === 'auto' || item.priceSource === 'capture');
@@ -731,56 +746,75 @@ function updateVerdictPanel(animate = false) {
     : `based on prices for ${v.pricedCount} of ${v.totalCount} items`;
 
   let cls = '';
-  let headline = '';
+  let word = '';
+  let sub = '';
+  let action = '';
   let detail = '';
+
+  const deadlineShort = config.optOutDeadline
+    ? `<strong>${esc(formatDeadline(config.optOutDeadline))}</strong>`
+    : 'SSU&rsquo;s add/drop deadline';
 
   if (state.items.length === 0) {
     cls = 'v-optout';
-    headline = `Your list shows nothing included. The bundle would cost you <span class="num">${fmt(v.bundleCost)}</span> for it.`;
+    word = 'No.';
+    sub = `Your list shows nothing included. The bundle would cost you <span class="num">${fmt(v.bundleCost)}</span> for it.`;
+    action = `Opt out by ${deadlineShort}.`;
     detail = `<p class="verdict-detail">Buying nothing costs <span class="num">$0.00</span>. Based on what your list shows
       today, opting out saves you <strong class="num">${fmt(v.difference)}</strong>. Materials can still be
       added later, see below.</p>`;
   } else if (v.recommendation === 'incomplete' && v.complete && v.pricedCount === 0) {
-    headline = 'Every item is marked “couldn’t find it”, so there’s nothing to compare yet.';
+    word = 'Can&rsquo;t say.';
+    sub = 'Every item is marked \u201ccouldn\u2019t find it\u201d, so there\u2019s nothing to compare yet.';
     detail = `<p class="verdict-detail">The bundle costs <span class="num">${fmt(v.bundleCost)}</span> for your units,
-      but without at least one price you found, the tool has no basis for a verdict and won’t
+      but without at least one price you found, the tool has no basis for a verdict and won\u2019t
       invent one. Try the search links again, or ask a librarian or classmate for help finding
       a price.</p>`;
   } else if (v.recommendation === 'incomplete' && state.priceFetch === 'loading') {
-    headline = 'Checking real prices for your items&hellip;';
+    word = '&hellip;';
+    sub = 'Checking real prices for your items&hellip;';
     detail = `<p class="verdict-detail">The bundle side is already known:
       <span class="num">${fmt(v.bundleCost)}</span> for your units. The buying side is being
-      looked up right now. Anything the lookup can’t find, you can price by hand below.</p>`;
+      looked up right now. Anything the lookup can\u2019t find, you can price by hand below.</p>`;
   } else if (v.recommendation === 'incomplete') {
     const remaining = v.totalCount - v.pricedCount - v.skippedCount;
     // The bundle is only ever *called* the winner past the close band, so the
     // honest threshold includes it (difference alone would land on "close").
     const breakEven = Math.max(0, v.difference + (config.closeThreshold ?? config.pricePerUnit));
-    headline = remaining === 1
+    word = 'Almost.';
+    sub = remaining === 1
       ? 'One item still needs a price.'
       : `${remaining} items still need a price.`;
     detail = `<p class="verdict-detail">So far: bundle <span class="num">${fmt(v.bundleCost)}</span> vs
       <span class="num">${fmt(v.knownBuyTotal)}</span> found, ${basis}. For this tool to call the
       bundle the better deal, the remaining ${remaining === 1 ? 'item' : `${remaining} items together`}
-      would have to cost more than <span class="num">${fmt(breakEven)}</span>. It won’t call opting
-      out until every item has a price or is marked “couldn’t find it”.</p>`;
+      would have to cost more than <span class="num">${fmt(breakEven)}</span>. It won\u2019t call opting
+      out until every item has a price or is marked \u201ccouldn\u2019t find it\u201d.</p>`;
   } else if (v.recommendation === 'opt_out') {
     cls = 'v-optout';
-    headline = `Buying on your own looks cheaper. You’d keep <span class="num">${fmt(v.difference)}</span>.`;
+    word = 'No.';
+    sub = `The bundle isn&rsquo;t worth it for your cart. Opting out keeps
+      <span class="num">${fmt(v.difference)}</span> in your pocket.`;
+    action = `Opt out by ${deadlineShort}.`;
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy the items on your list,
       vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}.</p>
       ${v.skippedCount > 0 ? `<p class="verdict-detail"><strong>Caveat:</strong> ${v.skippedCount}
-      item(s) you couldn’t price aren’t counted. If they turn out to be expensive,
+      item(s) you couldn\u2019t price aren\u2019t counted. If they turn out to be expensive,
       this could flip. Price them before deciding if you can.</p>` : ''}`;
   } else if (v.recommendation === 'stay_in') {
     cls = 'v-stayin';
-    headline = `The bundle looks like the better deal. It saves you <span class="num">${fmt(Math.abs(v.difference))}</span>.`;
+    word = 'Yes.';
+    sub = `The bundle is the better deal for your cart. It saves you
+      <span class="num">${fmt(Math.abs(v.difference))}</span>.`;
+    action = 'Nothing to do. You&rsquo;re enrolled by default.';
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy the items on your list,
-      vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}. Staying in means doing nothing.
-      You’re enrolled by default.</p>${oneSourceNote()}`;
+      vs <span class="num">${fmt(v.bundleCost)}</span> for the bundle, ${basis}.</p>${oneSourceNote()}`;
   } else {
     cls = 'v-close';
-    headline = `It’s close: within <span class="num">${fmt(config.closeThreshold)}</span> either way.`;
+    word = 'Close.';
+    sub = `Within <span class="num">${fmt(config.closeThreshold)}</span> either way. This one&rsquo;s
+      yours to call.`;
+    action = `Decide by ${deadlineShort}.`;
     detail = `<p class="verdict-detail"><span class="num">${fmt(v.knownBuyTotal)}</span> to buy vs <span class="num">${fmt(v.bundleCost)}</span>
       for the bundle, ${basis}. At this margin, think about the non-price factors: staying in is
       one flat charge with nothing to hunt down; books you buy outright are yours to keep or
@@ -827,20 +861,26 @@ function updateVerdictPanel(animate = false) {
 
   panel.className = `verdict-panel ${cls}`;
   panel.innerHTML = `
-    <div class="receipt-lines" data-audit-money-group="receipt">${bundleLine}${lineItems}</div>
+    <div class="answer-block">
+      <p class="answer-word${animate ? ' settle' : ''}" data-audit="verdict-figure" role="status">${word}</p>
+      <p class="answer-sub">${sub}</p>
+      ${action ? `<p class="answer-action">${action}</p>` : ''}
+    </div>
+    <div class="receipt-lines${animate ? ' reveal' : ''}" data-audit-money-group="receipt">${bundleLine}${lineItems}</div>
     <div class="receipt-total">
       <div class="receipt-line r-total">
         <span class="r-name">Difference</span>
         <span class="r-dots"></span>
-        <div class="verdict-figure${animate ? ' settle' : ''}" data-audit="verdict-figure">${figHtml}</div>
+        <div class="receipt-diff">${figHtml}</div>
       </div>
-      <p class="verdict-headline">${headline}</p>${detail}${accessNote}
+      ${detail}${accessNote}
       <p class="muted small">Found prices are real offers at the moment of lookup, each linked
       below so you can check it. Prices you type are your own findings. Offers move, so buy soon
       after you decide. The verdict is only as good as these inputs.
       <a href="${esc(config.methodologyUrl)}">How this is computed</a>.</p>
     </div>`;
-  renderCompareFigure(v);
+  const intro = $('verdict-intro');
+  if (intro) intro.innerHTML = verdictIntro();
   updatePriceProgress(v);
 }
 
@@ -909,30 +949,6 @@ function wireVerdictStep() {
 wireInputStep();
 wireConfirmStep();
 wireVerdictStep();
-$('repo-link')?.setAttribute('href', config.repoUrl);
-// Static copy that must track the semester config — see README, "How to
-// update this each semester". config.js is the single source for the rate.
-document.querySelectorAll('[data-config="pricePerUnit"]').forEach((el) => {
-  el.textContent = fmt(config.pricePerUnit);
-});
-document.querySelectorAll('[data-config="term"]').forEach((el) => {
-  el.textContent = config.term;
-});
-document.querySelectorAll('[data-config="fullLoad15"]').forEach((el) => {
-  el.textContent = `$${(15 * config.pricePerUnit).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
-});
-// Doc links point at GitHub's rendered views (raw .md serves as plain text
-// on most static hosts); bookstore links come from config so each term's
-// re-verification touches one file.
-const LINKS = {
-  methodology: config.methodologyUrl,
-  claims: config.claimsUrl,
-  'course-materials': config.courseMaterialsUrl,
-  'course-finder': config.courseFinderUrl,
-};
-Object.entries(LINKS).forEach(([key, url]) => {
-  document.querySelectorAll(`[data-link="${key}"]`).forEach((el) => el.setAttribute('href', url));
-});
 // Hero bill fragment: units in, bundle bill out, instantly. This is the
 // first working piece of the calculator a visitor touches. An out-of-range
 // or empty field never fakes a dollar figure; it asks instead.
@@ -949,7 +965,6 @@ function updateBill() {
         <strong id="bill-amount">${amount}</strong> for the bundle this semester.`;
     }
   }
-  if (state.step !== 'verdict') renderCompareFigure(null);
 }
 function nudgeUnits(delta) {
   const input = $('units-input');
@@ -960,6 +975,11 @@ function nudgeUnits(delta) {
 $('units-input')?.addEventListener('input', updateBill);
 $('units-minus')?.addEventListener('click', () => nudgeUnits(-1));
 $('units-plus')?.addEventListener('click', () => nudgeUnits(1));
+// The slim deadline line riding under the tool (the verdict screen carries
+// its own fuller deadline note, so CSS hides this one there).
+$('screen-deadline').textContent = config.optOutDeadline
+  ? `Opt-out deadline for ${config.term}: ${formatDeadline(config.optOutDeadline)}, the last day of add/drop.`
+  : `Opting out closes at SSU’s add/drop deadline for ${config.term}. Check your bookstore portal for the exact date.`;
 showStep('input'); // marks the stepper's starting position and renders the panel
 updateBill();
 

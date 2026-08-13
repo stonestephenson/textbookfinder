@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#f2f6f5" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f181b" media="(prefers-color-scheme: dark)">
   <title>Is the Seawolf Bundle worth it?</title>
-  <meta name="description" content="SSU auto-enrolls every undergrad in a $21-per-unit textbook program. This free calculator shows the math for your classes, either way.">
+  <meta name="description" content="SSU bills every undergrad $21 per unit for course materials unless they opt out. This free calculator checks your own cart and answers either way.">
   <meta property="og:title" content="Is the Seawolf Bundle worth it?">
   <meta property="og:description" content="A free calculator for SSU students: the bundle vs buying your books yourself. Every fact sourced.">
   <meta property="og:type" content="website">
@@ -20,21 +20,10 @@
   <header class="hero wrap">
     <p class="eyebrow">For Sonoma State students &amp; families</p>
     <h1>Is the Seawolf Bundle worth it?</h1>
-    <p class="lede">SSU automatically enrolls every undergraduate in its
-      <strong><span data-config="pricePerUnit">$21.00</span>-per-unit</strong> textbook program,
-      a whopping <span data-config="fullLoad15">$315</span> a semester at a full 15-unit load.
-      Is that actually a good deal? We do the math, so you don&rsquo;t have to.</p>
-  </header>
-
-  <!-- ── THE TOOL ────────────────────────────────────────────────────── -->
-  <main class="tool wrap" id="tool">
-    <div class="stepper" aria-hidden="true">
-      <div class="snode" data-step="input">1 &middot; Your list</div>
-      <div class="snode" data-step="confirm">2 &middot; Check it</div>
-      <div class="snode" data-step="verdict">3 &middot; Your answer</div>
-    </div>
-
-    <div class="figure-panel">
+    <div class="hero-flow">
+      <p class="lede">SSU bills every undergraduate
+        <strong><span data-config="pricePerUnit">$21.00</span> per unit</strong> for course
+        materials unless they opt out. Worth it? Let&rsquo;s check your cart.</p>
       <div class="figure-units">
         <label class="bill-label" for="units-input">Units you&rsquo;re registered for</label>
         <div class="bill-row">
@@ -47,7 +36,15 @@
             <strong id="bill-amount">$315.00</strong> for the bundle this semester.</p>
         </div>
       </div>
-      <div id="compare-figure" class="compare-figure" aria-label="Cost comparison"></div>
+    </div>
+  </header>
+
+  <!-- ── THE TOOL ────────────────────────────────────────────────────── -->
+  <main class="tool wrap" id="tool">
+    <div class="stepper" aria-hidden="true">
+      <div class="snode" data-step="input">1 &middot; Your list</div>
+      <div class="snode" data-step="confirm">2 &middot; Check it</div>
+      <div class="snode" data-step="verdict">3 &middot; Your answer</div>
     </div>
 
     <!-- STEP 1: CAPTURE -->
@@ -110,7 +107,7 @@
     <!-- STEP 2: CONFIRM -->
     <section class="card" id="step-confirm" hidden>
       <h2>Does this match your list?</h2>
-      <p class="lead">Fix anything wrong. Nothing is computed until you confirm.</p>
+      <p class="lead">One quick look. Nothing is computed until you confirm.</p>
       <div id="confirm-warnings"></div>
       <div id="items-list"></div>
       <button type="button" class="btn" id="add-item-btn">+ Add an item</button>
@@ -118,13 +115,12 @@
       <div id="confirm-errors" class="notice notice-warn" hidden></div>
       <div class="confirm-actions">
         <button type="button" class="btn" id="back-btn">Back</button>
-        <button type="button" class="btn btn-primary" id="confirm-btn">This matches my list. Do the math</button>
+        <button type="button" class="btn btn-primary btn-big" id="confirm-btn">Looks right. Do the math</button>
       </div>
     </section>
 
-    <!-- STEP 3: VERDICT -->
-    <section class="card" id="step-verdict" hidden>
-      <h2>Your answer</h2>
+    <!-- STEP 3: THE ANSWER -->
+    <section class="card card-answer" id="step-verdict" hidden>
       <div id="verdict-panel"></div>
       <p class="price-progress" id="price-progress"></p>
       <div id="verdict-items"></div>
@@ -135,72 +131,21 @@
       </div>
     </section>
 
+    <p class="screen-deadline" id="screen-deadline"></p>
+
     <p class="trust-line">Free, no sign-up required. If the answer is &ldquo;keep the
-      bundle,&rdquo; we&rsquo;ll say that, loud and clear. Nothing stored, no tracking, no ads.
-      Built by an SSU student, not affiliated with SSU or Barnes&nbsp;&amp;&nbsp;Noble, and this
-      site earns nothing either way. Every number is sourced:
-      <a href="contract/PRA%202026-495.pdf">read the contract</a>.</p>
+      bundle,&rdquo; we&rsquo;ll say that, loud and clear. Nothing stored, no tracking, no ads,
+      and this site earns nothing either way. Built by an SSU student.
+      <a href="why.html">Why trust this?</a></p>
   </main>
-
-  <!-- ── RECEIPTS ────────────────────────────────────────────────────── -->
-  <section class="receipts" id="receipts">
-    <div class="wrap">
-      <h2>Why trust this?</h2>
-      <p class="muted">Because you can check it. This site was built by an SSU student, is not
-        affiliated with SSU, Sonoma State Enterprises, or Barnes &amp; Noble, and earns nothing
-        from your decision either way. Every number below is sourced, most of them to the
-        bookstore contract itself, obtained through public records request PRA&nbsp;2026&#8209;495
-        (<a href="contract/PRA%202026-495.pdf">read all 56 pages</a>).</p>
-
-      <h3>What the Seawolf Bundle is</h3>
-      <p>SSU&rsquo;s version of Barnes &amp; Noble&rsquo;s <em>First Day&reg; Complete</em>
-        program. Every undergraduate is enrolled automatically and charged
-        <span data-config="pricePerUnit">$21.00</span> per unit for course-material access unless
-        they opt out before the add/drop deadline. It is rental-first: most physical items must
-        be returned at term&rsquo;s end.</p>
-
-      <h3>The price is an average, not your cost</h3>
-      <p>The per-unit price isn&rsquo;t based on what <em>your</em> materials cost. The contract
-        between Sonoma State Enterprises (SSE) and Barnes &amp; Noble sets a single flat rate:</p>
-      <blockquote>&ldquo;&hellip;an average price across all courses&rdquo; which applies
-        &ldquo;regardless of how many or whether course materials are being used in a particular
-        course.&rdquo; <span class="cite">Amendment No.&nbsp;1 &sect;22(v)(1)</span></blockquote>
-      <p>If your classes need less than the average, you pay the average anyway. That&rsquo;s the
-        gap this calculator closes.</p>
-
-      <h3>Who profits, and who sets the price</h3>
-      <p>SSE, the SSU auxiliary that holds the bookstore contract, receives a commission of
-        <strong>10% of gross course-material sales</strong>, a category the contract expressly
-        defines to include bundle revenue <span class="cite">&sect;11.1 as amended</span>.
-        The per-unit price is set each year by agreement between SSE and Barnes &amp; Noble, no
-        later than March, effective the following fall
-        <span class="cite">&sect;22(v)(5)</span>. The agreement contains <strong>no cap on price
-        increases</strong> (none appears anywhere in the 56-page production) and excludes no
-        programs <span class="cite">&sect;22(iii)(3)</span>: the student price has risen from $18.50 per
-        unit in 2023 to <span data-config="pricePerUnit">$21.00</span> now.</p>
-
-      <h3>What this tool does and doesn&rsquo;t do</h3>
-      <p>It uses your own list as the source of truth. Sometimes the answer really is to stay
-        in: single-use access codes usually can&rsquo;t be bought used, and if your list includes
-        a few of them, the bundle can win. The tool will tell you either way.</p>
-      <p>It reads what <em>your</em> list shows, has you confirm it, then finds real offers for
-        your items in the open: every price it fills in names its store, links to the
-        store&rsquo;s page for that item, and can be replaced with your own number in one tap.
-        It never asserts a price it can&rsquo;t show you. Access codes are the one exception:
-        stores don&rsquo;t usually sell those used, so when your own capture shows a listed
-        price the tool uses that, labeled as yours. The full computation is documented in
-        <a data-link="methodology" href="METHODOLOGY.md">the methodology</a>, and every factual
-        claim on this page is sourced line-by-line in
-        <a data-link="claims" href="CLAIMS.md">the claims ledger</a>.</p>
-    </div>
-  </section>
 
   <footer class="site-footer">
     <div class="wrap">
       <p>Not affiliated with Sonoma State University, Sonoma State Enterprises, or
         Barnes&nbsp;&amp;&nbsp;Noble. Built by an SSU student. Figures configured for
         <span data-config="term">Fall 2026</span>.</p>
-      <p><a data-link="methodology" href="METHODOLOGY.md">How the verdict is computed</a> &middot;
+      <p><a href="why.html">Why trust this?</a> &middot;
+        <a data-link="methodology" href="METHODOLOGY.md">How the verdict is computed</a> &middot;
         <a data-link="claims" href="CLAIMS.md">Every claim, sourced</a> &middot;
         <a href="contract/PRA%202026-495.pdf">The contract (PDF)</a> &middot;
         <a id="repo-link" href="https://github.com/stonestephenson/textbookfinder">Open source</a></p>

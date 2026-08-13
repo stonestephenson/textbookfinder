@@ -226,21 +226,22 @@ async function browserFlows(base) {
     await check('flow: cheap prices → opt_out verdict with exact difference', async () => {
       const r = await page(pasteToVerdict([11.08, 80])); // buy $91.08 vs $210
       expect(r.verdictVisible, 'verdict step not shown');
-      expect(r.panelText.includes('cheaper'), `panel: ${r.panelText.slice(0, 120)}`);
+      expect(r.figureText === 'No.', `answer word: ${r.figureText}`);
+      expect(r.panelText.includes('keeps $118.92 in your pocket'), `panel: ${r.panelText.slice(0, 140)}`);
       expect(r.panelText.includes('$118.92'), 'difference $118.92 missing');
-      expect(r.figureText.includes('$118.92'), `figure: ${r.figureText}`);
       expect(r.deadlineText.includes('September 4, 2026'), 'deadline missing from verdict');
     });
 
     await check('flow: expensive prices → stay_in verdict, plainly', async () => {
       const r = await page(pasteToVerdict([150, 120])); // buy $270 vs $210
-      expect(r.panelText.includes('bundle looks like the better deal'), `panel: ${r.panelText.slice(0, 120)}`);
+      expect(r.figureText === 'Yes.', `answer word: ${r.figureText}`);
+      expect(r.panelText.includes('better deal for your cart'), `panel: ${r.panelText.slice(0, 140)}`);
       expect(r.panelText.includes('$60.00'), 'saving $60.00 missing');
     });
 
     await check('flow: near-tie → close verdict, refuses to call a winner', async () => {
       const r = await page(pasteToVerdict([100, 95])); // buy $195, within $21 band
-      expect(r.panelText.includes('close'), `panel: ${r.panelText.slice(0, 120)}`);
+      expect(r.figureText === 'Close.', `answer word: ${r.figureText}`);
       expect(r.panelText.includes('$21.00'), 'band size missing');
     });
 
@@ -279,6 +280,50 @@ async function browserFlows(base) {
       })()`);
       expect(r.visible, 'confirm step not shown');
       expect(r.before === 1 && r.after === 2, `items ${r.before}→${r.after}`);
+    });
+
+    await check('flow: empty cart is a real result, answered plainly', async () => {
+      const r = await page(`(async () => {
+        document.getElementById('manual-entry-link').click();
+        ${sleep(200)}
+        document.querySelector('[data-remove="0"]').click();
+        ${sleep(150)}
+        document.getElementById('confirm-btn').click();
+        ${sleep(250)}
+        return {
+          word: document.querySelector('[data-audit="verdict-figure"]')?.textContent.trim(),
+          panelText: document.getElementById('verdict-panel').textContent.replace(/\\s+/g, ' '),
+        };
+      })()`);
+      expect(r.word === 'No.', `answer word: ${r.word}`);
+      expect(r.panelText.includes('nothing included'), `panel: ${r.panelText.slice(0, 120)}`);
+    });
+
+    await check('flow: invalid units on confirm are rejected, not computed', async () => {
+      const r = await page(`(async () => {
+        document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
+        document.getElementById('parse-text-btn').click();
+        ${sleep(250)}
+        const u = document.getElementById('confirm-units-input');
+        u.value = '99';
+        u.dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('confirm-btn').click();
+        ${sleep(200)}
+        return {
+          stillOnConfirm: !document.getElementById('step-confirm').hidden,
+          err: document.getElementById('confirm-errors').textContent,
+        };
+      })()`);
+      expect(r.stillOnConfirm, 'moved on despite invalid units');
+      expect(r.err.includes('between 1 and'), `error was: ${r.err}`);
+    });
+
+    await check('trust page: why.html serves with the sourced content', async () => {
+      const r = await fetch(`${base}/why.html`);
+      expect(r.status === 200, `got ${r.status}`);
+      const body = await r.text();
+      expect(body.includes('PRA%202026-495.pdf'), 'contract link missing');
+      expect(body.includes('average price across all courses'), 'contract quote missing');
     });
 
     await check('flow: back / edit / restart navigation', async () => {
@@ -379,7 +424,7 @@ async function browserFlows(base) {
         };
       })()`);
       expect(r2.prefilled === '48.99', `input should be prefilled with the offer, got ${r2.prefilled}`);
-      expect(r2.panelText.includes('bundle looks like the better deal'), 'user override should drive an early stay_in');
+      expect(r2.panelText.includes('better deal for your cart'), 'user override should drive an early stay_in');
       await cdp.send('Target.closeTarget', { targetId });
     });
 

@@ -362,7 +362,7 @@ function judge(obs) {
 }
 
 async function grepSource() {
-  const files = ['index.html', 'assets/app.js', 'assets/parse-text.js', 'api/parse.js'];
+  const files = ['index.html', 'why.html', 'assets/app.js', 'assets/parse-text.js', 'api/parse.js'];
   const patterns = [/requires\b/i, /required for/i, /your course needs/i];
   const hits = [];
   for (const f of files) {
