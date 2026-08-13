@@ -219,7 +219,6 @@ function pasteToVerdict(prices /* array of numbers|null, or 'skip' */) {
       figureText: document.querySelector('[data-audit="verdict-figure"]')?.textContent.trim() ?? '',
       pending: Boolean(document.querySelector('.fig-pending')),
       deadlineText: document.getElementById('deadline-note').textContent,
-      progressText: document.getElementById('price-progress').textContent,
     };
   })()`;
 }
