@@ -27,7 +27,7 @@ export const config = {
   // NEVER enter a date you haven't verified for the current term, and record
   // where it came from in optOutDeadlineSource + CLAIMS.md.
   optOutDeadline: '2026-09-04',
-  optOutDeadlineSource: 'seawolfbundle.sonoma.edu (Fall 2026 opt-out window closes Sept 4, 2026) and registrar.sonoma.edu/academic-calendar (Fall 2026 add/drop deadline Sept 4, 2026); both verified 2026-08-05',
+  optOutDeadlineSource: 'seawolfbundle.sonoma.edu (Fall 2026 opt-out window closes Sept 4, 2026, re-verified 2026-08-12) and registrar.sonoma.edu/academic-calendar (add/drop Sept 4, 2026). NOTE: a student portal capture on 2026-08-12 showed a B&N "Opt Out End Date" of September 13, 2026, conflicting with the official pages. The site deliberately displays the EARLIER date (acting by it satisfies both) pending written confirmation from the bookstore.',
 
   // Official outbound links, verified 2026-08-05. Re-verify each term — see
   // README. courseMaterialsUrl is the bookstore's "see your registered

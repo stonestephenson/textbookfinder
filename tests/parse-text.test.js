@@ -163,3 +163,28 @@ test('course code variants match', () => {
   assert.equal(codes[0], 'PHIL 120');
   assert.equal(codes[1], 'KIN 312A');
 });
+
+test('the bundle welcome screen gets a targeted message, with its own count quoted back', () => {
+  const raw = `
+Welcome, Stone
+Your estimated savings on
+included materials is:
+$13.15*
+Hello Stone,
+Welcome to Seawolf Bundle!
+You are registered for 5 courses and have 1 included materials available.
+Events Timeline
+Opt Out End Date
+ September 13, 2026
+`;
+  const { items, warnings } = parseText(raw, config);
+  assert.equal(items.length, 0);
+  assert.ok(warnings[0].includes('1 included item'), warnings[0]);
+  assert.ok(warnings[0].includes('welcome screen'), warnings[0]);
+  assert.ok(warnings[0].includes('open each one'), warnings[0]);
+});
+
+test('unrecognizable text still gets the generic no-items message', () => {
+  const { warnings } = parseText('lol random text\nnothing here at all', config);
+  assert.ok(warnings[0].includes("Couldn't find any course materials"), warnings[0]);
+});

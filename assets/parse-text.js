@@ -187,10 +187,28 @@ export function parseText(raw, config) {
   }
 
   if (items.length === 0 && text.trim().length > 0) {
-    warnings.push(
-      "Couldn't find any course materials in that text. Try pasting the full "
-      + 'course materials section from your bookstore page, or enter items manually below.',
-    );
+    // The bundle portal's welcome screen carries only summary counts — the
+    // item details render deeper in (per-course sections), so a select-all
+    // copy of that screen has nothing extractable. Say so specifically:
+    // the generic message sends people in circles. (Observed on a real
+    // student portal capture, 2026-08-12.)
+    const welcomePage = /welcome to seawolf bundle|included materials? available|estimated savings on/i.test(text);
+    if (welcomePage) {
+      const count = text.match(/have\s+(\d+)\s+included materials?/i);
+      const mention = count && Number(count[1]) > 0
+        ? `Your page says ${count[1]} included item${Number(count[1]) === 1 ? '' : 's'}, but the details didn’t come through in the copied text. `
+        : '';
+      warnings.push(
+        `${mention}That looks like the bundle welcome screen, which only shows summary `
+        + 'counts. Scroll to your courses and open each one so the actual materials show, '
+        + 'then copy again. A screenshot of the expanded list works too.',
+      );
+    } else {
+      warnings.push(
+        "Couldn't find any course materials in that text. Try pasting the full "
+        + 'course materials section from your bookstore page, or enter items manually below.',
+      );
+    }
   }
   return { items, warnings };
 }
