@@ -792,8 +792,8 @@ function renderVerdict() {
         const manualHidden = found || loading;
         const summary = !found ? '' : (item.priceSource === 'auto'
           ? `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
-              <span class="price-src">${esc(offerLabel(item.offer))} ·
-              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">see it at the store&nbsp;&#8599;</a></span>
+              <span class="price-src">${esc(offerLabel(item.offer))}${item.offer.url ? ` ·
+              <a href="${esc(item.offer.url)}" target="_blank" rel="noopener noreferrer">open this offer&nbsp;&#8599;</a>` : ''}</span>
               <button type="button" class="linkish" data-edit-idx="${idx}">change</button></div>`
           : `<div class="price-found"><span class="num" data-audit="money">${fmt(item.userPrice)}</span>
               <span class="price-src">listed in your own capture</span>

@@ -96,17 +96,30 @@ test('garbage prices are ignored, not summed', () => {
   assert.equal(pickOffer(wrap(offers), ISBN), null);
 });
 
-test('link is the plain product page, never an affiliate cart URL', () => {
+test('link is the offer cart URL with the affiliate parameter stripped', () => {
   const offers = {
     booksrun: {
-      used: { price: 10, shipping_price: 0, cart_url: 'https://booksrun.com/user/buy/cart/add/x?afk=30642' },
+      used: { price: 10, shipping_price: 0, cart_url: 'https://booksrun.com/user/buy/cart/add/x-11-1?afk=30642' },
       new: 'none', rent: 'none', ebook: 'none', shipping: 0,
     },
     marketplace: 'none',
   };
   const o = pickOffer(wrap(offers), ISBN);
-  assert.equal(o.url, `https://booksrun.com/${ISBN}`);
+  assert.equal(o.url, 'https://booksrun.com/user/buy/cart/add/x-11-1');
   assert.ok(!o.url.includes('afk'));
+});
+
+test('an offer without a usable cart URL gets no link at all, never a guess', () => {
+  const offers = {
+    booksrun: { used: { price: 10, shipping_price: 0 }, new: 'none', rent: 'none', ebook: 'none', shipping: 0 },
+    marketplace: 'none',
+  };
+  assert.equal(pickOffer(wrap(offers), ISBN).url, null);
+  const offsite = {
+    booksrun: { used: { price: 10, shipping_price: 0, cart_url: 'https://evil.example/x' }, new: 'none', rent: 'none', ebook: 'none', shipping: 0 },
+    marketplace: 'none',
+  };
+  assert.equal(pickOffer(wrap(offsite), ISBN).url, null);
 });
 
 test('money is exact to the cent', () => {

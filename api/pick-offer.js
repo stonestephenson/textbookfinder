@@ -12,6 +12,9 @@
 //   toward "stay in" — the conservative direction.
 // - The total always includes shipping. Cheapest total wins; ties prefer
 //   ownership (used/new) over rental.
+// - The link is the offer's own cart URL with the affiliate parameter the
+//   API embeds stripped off (CLAIMS.md #30): the API exposes no plain
+//   product page, and a constructed /{isbn} guess 404s (field-tested).
 
 const MIN_RENT_DAYS = 110; // a fall/spring semester, first day to finals
 
@@ -39,7 +42,7 @@ export function pickOffer(response, isbn) {
       const price = o && money(o.price);
       if (price != null) {
         const shipping = money(o.shipping_price) ?? brShip;
-        candidates.push({ kind, price, shipping, seller: null, rentDays: null });
+        candidates.push({ kind, price, shipping, seller: null, rentDays: null, cartUrl: o.cart_url });
       }
     }
     const rent = offerDict(br.rent);
@@ -50,7 +53,7 @@ export function pickOffer(response, isbn) {
         const price = od && money(od.price);
         if (Number.isFinite(d) && d >= MIN_RENT_DAYS && price != null) {
           const shipping = money(od.shipping_price) ?? brShip;
-          candidates.push({ kind: 'rent', price, shipping, seller: null, rentDays: d });
+          candidates.push({ kind: 'rent', price, shipping, seller: null, rentDays: d, cartUrl: od.cart_url });
         }
       }
     }
@@ -70,6 +73,7 @@ export function pickOffer(response, isbn) {
           seller: typeof s.seller === 'string' ? s.seller : null,
           condition: typeof o.condition === 'string' ? o.condition : null,
           rentDays: null,
+          cartUrl: o.cart_url,
         });
       }
     }
@@ -85,6 +89,13 @@ export function pickOffer(response, isbn) {
   });
   const best = candidates[0];
 
+  // The offer's own URL, affiliate parameter stripped: this site earns
+  // nothing from any link (CLAIMS.md #30). No URL, no link.
+  let url = null;
+  if (typeof best.cartUrl === 'string' && best.cartUrl.startsWith('https://booksrun.com/')) {
+    url = best.cartUrl.split('?')[0];
+  }
+
   return {
     total: cents(best) / 100,
     price: Math.round(best.price * 100) / 100,
@@ -93,8 +104,6 @@ export function pickOffer(response, isbn) {
     rentDays: best.rentDays ?? null,
     seller: best.seller ?? null,
     condition: best.condition ?? null,
-    // Plain product page — deliberately NOT the API's affiliate cart_url.
-    // This site earns nothing from any link (CLAIMS.md #30).
-    url: `https://booksrun.com/${isbn}`,
+    url,
   };
 }
