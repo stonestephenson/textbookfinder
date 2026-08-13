@@ -453,6 +453,8 @@ async function browserFlows(base) {
       })()`);
       expect(r2.prefilled === '48.99', `input should be prefilled with the offer, got ${r2.prefilled}`);
       expect(r2.panelText.includes('better deal for your cart'), 'user override should drive an early stay_in');
+      const rows = await evalIn(cdp, sessionId, "document.querySelectorAll('.v-item')[0].querySelectorAll('.retailer-links').length");
+      expect(rows === 1, `retailer link rows after change: ${rows}`);
       await cdp.send('Target.closeTarget', { targetId });
     });
 

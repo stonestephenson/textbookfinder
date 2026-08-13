@@ -828,8 +828,8 @@ function renderVerdict() {
         })() : ''}
         ${loading ? '<div class="price-found"><span class="price-src">checking prices&hellip;</span></div>' : ''}
         ${summary}
-        ${found ? `<p class="small muted">Think it might be cheaper? Check a link, then change the number.</p>
-          <div class="retailer-links">${retailerLinks(item)}</div>` : ''}
+        ${found ? '<p class="small muted">Think it might be cheaper? Check a link, then change the number.</p>' : ''}
+        ${loading ? '' : `<div class="retailer-links">${retailerLinks(item)}</div>`}
         <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
           ${!item.skipped && item.userPrice == null && !isbnish(item.isbn)
     ? (item.resolving
@@ -838,7 +838,6 @@ function renderVerdict() {
         ? `Couldn&rsquo;t match this title just now. <button type="button" class="linkish" data-relookup="${idx}">Look it up again</button> or type a price from a link.`
         : 'No ISBN or author to look this up with. Add one under Edit my items, or type a price from a link.'}</p>`)
     : ''}
-          <div class="retailer-links">${retailerLinks(item)}</div>
           <div class="price-row">
             <label for="price-${idx}">Best price you found</label>
             <span class="num price-currency">$</span><input type="number" id="price-${idx}" data-price-idx="${idx}" min="0" max="99999" step="0.01"
