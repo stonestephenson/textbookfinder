@@ -120,8 +120,12 @@ async function runPath(cdp, base, name, file, expected) {
   const { root } = await cdp.send('DOM.getDocument', {}, sessionId);
   const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#file-input' }, sessionId);
   await cdp.send('DOM.setFileInputFiles', { files: [file], nodeId }, sessionId);
-  await evalIn(cdp, sessionId,
-    `document.getElementById('file-input').dispatchEvent(new Event('change', { bubbles: true })); true`);
+  await evalIn(cdp, sessionId, `(async () => {
+    document.getElementById('file-input').dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 150));
+    document.getElementById('go-btn').click();
+    return true;
+  })()`);
 
   // The model call takes a while; poll until the confirm screen or an error.
   let state = null;

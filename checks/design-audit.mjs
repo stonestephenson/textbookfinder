@@ -37,7 +37,7 @@ function driveTo(screen, price) {
     document.getElementById('units-input').value = '${FIXTURE_UNITS}';
     document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('text-input').value = "${FIXTURE_TEXT}";
-    document.getElementById('parse-text-btn').click();
+    document.getElementById('go-btn').click();
     ${sleep(300)}`;
   if (screen === 'confirm') return `(async () => { ${toConfirm} return true; })()`;
   return `(async () => {

@@ -203,6 +203,38 @@ async function prepareImage(file) {
 
 const MAX_PARTS = 4;
 
+// Captures stage in the drop zone until the user hits "Get my answer" — one
+// visible action, exactly the flow on the tin. Images accumulate (multi-
+// screenshot carts); a full-page PDF stands alone.
+let stagedFiles = [];
+
+function renderStaged() {
+  const el = $('staged');
+  if (stagedFiles.length === 0) {
+    el.hidden = true;
+    el.innerHTML = '';
+    return;
+  }
+  const pdf = stagedFiles.some((f) => f.type === 'application/pdf');
+  const label = pdf ? 'Full-page PDF added'
+    : `${stagedFiles.length} screenshot${stagedFiles.length > 1 ? 's' : ''} added`;
+  el.innerHTML = `<strong>&#10003; ${label}.</strong> Add more, or
+    <button type="button" class="linkish" id="clear-staged">clear</button>`;
+  el.hidden = false;
+}
+
+function stageFiles(fileList) {
+  $('input-errors').hidden = true;
+  const files = [...fileList].filter((f) => f.type.startsWith('image/') || f.type === 'application/pdf');
+  if (files.length === 0) {
+    showInputError('Those files aren’t screenshots. Add images (PNG or JPG) or a full-page PDF capture, or paste text instead.');
+    return;
+  }
+  const pdf = files.find((f) => f.type === 'application/pdf');
+  stagedFiles = pdf ? [pdf] : [...stagedFiles.filter((f) => f.type !== 'application/pdf'), ...files];
+  renderStaged();
+}
+
 async function handleCaptureFiles(fileList) {
   $('input-errors').hidden = true;
   if (!config.parseEndpoint) {
@@ -276,6 +308,8 @@ async function handleCaptureFiles(fileList) {
     state.items = items;
     state.warnings = body.warnings ?? [];
     state.units = readUnits() ?? state.units;
+    stagedFiles = [];
+    renderStaged();
     renderConfirm();
     showStep('confirm');
     focusFirstUncertain();
@@ -312,7 +346,7 @@ function wireInputStep() {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
   });
   fileInput.addEventListener('change', () => {
-    if (fileInput.files.length > 0) handleCaptureFiles(fileInput.files);
+    if (fileInput.files.length > 0) stageFiles(fileInput.files);
     fileInput.value = '';
   });
 
@@ -326,7 +360,14 @@ function wireInputStep() {
   }));
   dropZone.addEventListener('drop', (e) => {
     const files = e.dataTransfer?.files;
-    if (files?.length) handleCaptureFiles(files);
+    if (files?.length) stageFiles(files);
+  });
+  $('staged').addEventListener('click', (e) => {
+    if (e.target.id === 'clear-staged') {
+      e.stopPropagation(); // don't open the file picker on clear
+      stagedFiles = [];
+      renderStaged();
+    }
   });
 
   document.addEventListener('paste', (e) => {
@@ -334,10 +375,36 @@ function wireInputStep() {
     if (e.target === $('text-input')) return;
     const file = [...(e.clipboardData?.items ?? [])]
       .find((it) => it.type.startsWith('image/'))?.getAsFile();
-    if (file) handleCaptureFiles([file]);
+    if (file) stageFiles([file]);
   });
 
-  $('parse-text-btn').addEventListener('click', handlePastedText);
+  // The one submit. Captures win if both are present.
+  $('go-btn').addEventListener('click', () => {
+    if (stagedFiles.length > 0) {
+      handleCaptureFiles(stagedFiles);
+      return;
+    }
+    if ($('text-input').value.trim()) {
+      handlePastedText();
+      return;
+    }
+    showInputError('Add your cart first: drop a screenshot of your course materials page, or paste its text.');
+  });
+
+  // Tiny links open the alternates; the page starts with none of them showing.
+  const wireToggle = (linkId, panelId, focusSel) => {
+    const link = $(linkId);
+    link.setAttribute('aria-expanded', 'false');
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const panel = $(panelId);
+      panel.hidden = !panel.hidden;
+      link.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden && focusSel) panel.querySelector(focusSel)?.focus();
+    });
+  };
+  wireToggle('paste-toggle', 'text-details', 'textarea');
+  wireToggle('long-list-toggle', 'capture-alternatives');
 
   $('manual-entry-link').addEventListener('click', (e) => {
     e.preventDefault();
@@ -938,7 +1005,11 @@ function wireVerdictStep() {
     state.items = [];
     state.units = null;
     state.warnings = [];
+    stagedFiles = [];
+    renderStaged();
     $('text-input').value = '';
+    $('text-details').hidden = true;
+    $('capture-alternatives').hidden = true;
     $('input-errors').hidden = true;
     showStep('input');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -997,19 +1068,16 @@ function detectDevice() {
 }
 
 const DEVICE_CAPTURE = {
-  ios: 'Take a screenshot, tap its preview, choose <strong>Full&nbsp;Page</strong>, and save it '
-    + 'as a PDF (it lands in your Files app). One capture gets your whole list.',
-  android: 'Take a scrolling screenshot (<strong>Capture&nbsp;more</strong>) so the whole list '
-    + 'fits in one long image.',
-  desktop: 'Easiest on a computer: select the whole page (<strong>Ctrl/Cmd&#8209;A</strong>), '
-    + 'copy, and use <strong>Paste the page text</strong> below. It captures everything. '
-    + 'Screenshots work too.',
+  ios: 'Take a screenshot, tap its preview, choose <strong>Full&nbsp;Page</strong>, save it as '
+    + 'a PDF, and add it here.',
+  android: 'Take a scrolling screenshot (<strong>Capture&nbsp;more</strong>) and add the long '
+    + 'image here.',
+  desktop: 'Select the whole page (<strong>Ctrl/Cmd&#8209;A</strong>), copy, and paste the text '
+    + '(link below). Screenshots work too.',
 };
 
 const device = detectDevice();
 if (device && DEVICE_CAPTURE[device]) {
   const instr = $('capture-instruction');
   if (instr) instr.innerHTML = DEVICE_CAPTURE[device];
-  const summary = $('capture-alternatives-summary');
-  if (summary) summary.textContent = 'On a different device?';
 }

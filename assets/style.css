@@ -103,7 +103,7 @@ a:hover { text-decoration-color: var(--ink); }
 /* ── Landing: title, two-beat lede, then the instrument ───────────────── */
 
 .hero { padding: 2rem 0 0.4rem; }
-.hero h1 { margin: 0.3rem 0 0.7rem; transition: font-size 240ms ease, margin 240ms ease; }
+.hero h1 { font-size: 2.1rem; margin: 0.3rem 0 0.7rem; transition: font-size 240ms ease, margin 240ms ease; }
 .hero .lede { color: var(--grey); max-width: 36em; margin: 0 0 1rem; }
 .hero .lede strong { color: var(--ink); }
 .eyebrow a { color: inherit; text-decoration: none; }
@@ -116,15 +116,17 @@ body:not([data-step="input"]) .hero h1 { font-size: 1.02rem; margin: 0 0 0.2rem;
 body:not([data-step="input"]) .hero .eyebrow,
 body:not([data-step="input"]) .hero .hero-flow { display: none; }
 
-.figure-units {
-  background: var(--card);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 0.9rem 1.1rem;
-  margin: 1.2rem 0 0.4rem;
+/* The units control reads as a sentence you finish, not a form you fill. */
+.bill-sentence {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin: 1.3rem 0 0.4rem;
+  font-size: 1.05rem;
 }
-.bill-label { display: block; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.03em; color: var(--grey); margin-bottom: 0.55rem; }
-.bill-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.bill-lead { font-weight: 600; }
+.bill-out { flex-basis: 100%; margin: 0.1rem 0 0; }
 .stepper-input { display: inline-flex; align-items: stretch; border: 1px solid var(--rule-2); border-radius: var(--radius); overflow: hidden; }
 .stepper-input input {
   width: 3.6rem;
@@ -155,8 +157,16 @@ body:not([data-step="input"]) .hero .hero-flow { display: none; }
   cursor: pointer;
 }
 .step-btn:hover { background: var(--paper); }
-.bill-out { margin: 0; font-size: 1rem; flex: 1; min-width: 12rem; }
-.bill-out strong { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.4rem; white-space: nowrap; }
+.bill-out strong { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.35rem; white-space: nowrap; }
+
+/* The capture step is an open stretch of page, not a boxed form. */
+.card.card-capture { border: none; background: none; padding: 0.2rem 0 0; box-shadow: none; }
+.capture-lead { margin: 0.4rem 0 0.9rem; max-width: 44em; }
+.alt-line { margin: 0.8rem 0 0; color: var(--grey); }
+.alt-line a { color: inherit; }
+.staged { margin: 0.6rem 0 0; }
+.btn-go { width: 100%; justify-content: center; margin-top: 1.1rem; }
+#text-details textarea { margin-top: 0.8rem; }
 
 .trust-line {
   margin: 1.4rem 0 0;

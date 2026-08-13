@@ -172,7 +172,7 @@ function pasteToVerdict(prices /* array of numbers|null, or 'skip' */) {
     document.getElementById('units-input').value = '${UNITS}';
     document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
     document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
-    document.getElementById('parse-text-btn').click();
+    document.getElementById('go-btn').click();
     ${sleep(250)}
     const confirm = {
       visible: !document.getElementById('step-confirm').hidden,
@@ -302,7 +302,7 @@ async function browserFlows(base) {
     await check('flow: invalid units on confirm are rejected, not computed', async () => {
       const r = await page(`(async () => {
         document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
-        document.getElementById('parse-text-btn').click();
+        document.getElementById('go-btn').click();
         ${sleep(250)}
         const u = document.getElementById('confirm-units-input');
         u.value = '99';
@@ -330,12 +330,12 @@ async function browserFlows(base) {
       const r = await page(`(async () => {
         const out = {};
         document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
-        document.getElementById('parse-text-btn').click();
+        document.getElementById('go-btn').click();
         ${sleep(250)}
         document.getElementById('back-btn').click();
         ${sleep(100)}
         out.backToInput = !document.getElementById('step-input').hidden;
-        document.getElementById('parse-text-btn').click();
+        document.getElementById('go-btn').click();
         ${sleep(250)}
         document.getElementById('confirm-btn').click();
         ${sleep(250)}
@@ -382,7 +382,7 @@ async function browserFlows(base) {
         document.getElementById('units-input').value = '${UNITS}';
         document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
         document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
-        document.getElementById('parse-text-btn').click();
+        document.getElementById('go-btn').click();
         ${sleep(250)}
         document.getElementById('confirm-btn').click();
         return true;
@@ -443,14 +443,19 @@ async function browserFlows(base) {
       const r = await evalIn(cdp, sessionId, `(async () => {
         // CDP sets the file list without firing events; nudge the app's listener.
         document.getElementById('file-input').dispatchEvent(new Event('change', { bubbles: true }));
+        ${sleep(150)}
+        document.getElementById('go-btn').click();
         ${sleep(700)}
         const err = document.getElementById('input-errors');
         const errShown = !err.hidden;
         const errText = err.textContent;
         // The paste path must still work after the failed upload (it hides
         // the error banner as it starts, so the state above is read first).
+        // Staged files stick around after a failure and outrank pasted text,
+        // so clear them the way a user would.
+        document.getElementById('clear-staged')?.click();
         document.getElementById('text-input').value = ${JSON.stringify(FIXTURE_TEXT)};
-        document.getElementById('parse-text-btn').click();
+        document.getElementById('go-btn').click();
         ${sleep(250)}
         return {
           errShown,

@@ -24,82 +24,69 @@
       <p class="lede">SSU bills every undergraduate
         <strong><span data-config="pricePerUnit">$21.00</span> per unit</strong> for course
         materials unless they opt out. Worth it? Let&rsquo;s check your cart.</p>
-      <div class="figure-units">
-        <label class="bill-label" for="units-input">Units you&rsquo;re registered for</label>
-        <div class="bill-row">
-          <div class="stepper-input">
-            <button type="button" class="step-btn" id="units-minus" aria-label="One unit fewer">&minus;</button>
-            <input type="number" id="units-input" inputmode="numeric" min="1" max="24" value="15">
-            <button type="button" class="step-btn" id="units-plus" aria-label="One unit more">+</button>
-          </div>
-          <p class="bill-out" id="bill-out">Unless you opt out, SSU bills you
-            <strong id="bill-amount">$315.00</strong> for the bundle this semester.</p>
-        </div>
+      <div class="bill-sentence">
+        <span class="bill-lead">You&rsquo;re registered for</span>
+        <span class="stepper-input">
+          <button type="button" class="step-btn" id="units-minus" aria-label="One unit fewer">&minus;</button>
+          <input type="number" id="units-input" inputmode="numeric" min="1" max="24" value="15"
+            aria-label="Units you are registered for">
+          <button type="button" class="step-btn" id="units-plus" aria-label="One unit more">+</button>
+        </span>
+        <span class="bill-lead">units.</span>
+        <span class="bill-out" id="bill-out">Unless you opt out, SSU bills you
+          <strong id="bill-amount">$315.00</strong> for the bundle this semester.</span>
       </div>
     </div>
   </header>
 
   <!-- ── THE TOOL ────────────────────────────────────────────────────── -->
   <main class="tool wrap" id="tool">
-    <div class="stepper" aria-hidden="true">
-      <div class="snode" data-step="input">1 &middot; Your list</div>
-      <div class="snode" data-step="confirm">2 &middot; Check it</div>
-      <div class="snode" data-step="verdict">3 &middot; Your answer</div>
-    </div>
-
     <!-- STEP 1: CAPTURE -->
-    <section class="card" id="step-input">
-      <h2>Get your cart list</h2>
-
-      <ol class="tap-path">
-        <li><span><a class="btn" data-link="course-materials" href="https://sso.bncollege.com/bes-sp/bessso/saml/sonomaedu/aip/logon"
-          target="_blank" rel="noopener noreferrer">Open My Course Materials&nbsp;&#8599;</a><br>
-          <span class="muted small">You sign in on SSU&rsquo;s own page. This site never sees
-          your login.</span></span></li>
-        <li><span id="capture-instruction">Screenshot the list of materials for your courses.
-          More than one screenshot is fine.</span></li>
-      </ol>
+    <section class="card card-capture" id="step-input">
+      <p class="capture-lead">Your list lives at
+        <a data-link="course-materials" href="https://sso.bncollege.com/bes-sp/bessso/saml/sonomaedu/aip/logon"
+          target="_blank" rel="noopener noreferrer">My&nbsp;Course&nbsp;Materials&nbsp;&#8599;</a>
+        <span class="muted small">(SSU&rsquo;s own sign-in, never seen by this site)</span>.
+        <span id="capture-instruction">Screenshot the list of materials for your courses.</span></p>
 
       <div id="drop-zone" class="drop-zone" tabindex="0" role="button"
-           aria-label="Upload or paste screenshots or a full-page PDF of your course materials page">
+           aria-label="Add screenshots or a full-page PDF of your course materials page">
         <p><strong>Drop your capture here</strong> or paste it (Ctrl/Cmd&#8209;V).</p>
         <button type="button" class="btn" id="file-btn">Choose images or a PDF</button>
         <input type="file" id="file-input" multiple
           accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" hidden>
+        <p class="staged small" id="staged" hidden></p>
         <p class="muted small" id="parse-status" hidden></p>
       </div>
 
-      <p class="alt-inputs">No screenshot? Use the
-        <a data-link="course-finder" href="https://sonoma.bncollege.com/course-material/course-finder"
-           target="_blank" rel="noopener noreferrer">course finder</a> (no login) and paste the
-        text, or <a href="#" id="manual-entry-link">type your items by hand</a>.</p>
+      <p class="alt-line small">
+        <a href="#" id="paste-toggle">Paste the page text instead</a> &middot;
+        <a href="#" id="manual-entry-link">type items by hand</a> &middot;
+        <a href="#" id="long-list-toggle">list longer than one screen?</a></p>
 
-      <details id="capture-alternatives">
-        <summary id="capture-alternatives-summary">Is your list longer than one screen?</summary>
+      <div id="capture-alternatives" hidden>
         <ul class="small" style="margin: 0.6rem 0 0.2rem; padding-left: 1.2rem;">
           <li><strong>iPhone:</strong> take a screenshot, tap the preview, choose
-            <em>Full&nbsp;Page</em>, and save it as a PDF. Then upload that PDF here.</li>
+            <em>Full&nbsp;Page</em>, and save it as a PDF. Then add that PDF here.</li>
           <li><strong>Android:</strong> use your phone&rsquo;s scrolling screenshot
             (<em>Capture&nbsp;more</em>). One long image works here.</li>
           <li><strong>Computer:</strong> easiest of all. Select the whole page
-            (Ctrl/Cmd&#8209;A), copy, and use <em>Paste the page text</em> below. That captures
-            everything, free, without leaving your browser.</li>
-          <li>Or take a few overlapping screenshots and drop them all in at once.</li>
+            (Ctrl/Cmd&#8209;A), copy, and paste the text. That captures everything, free,
+            without leaving your browser.</li>
+          <li>Or take a few overlapping screenshots and add them all at once.</li>
         </ul>
-      </details>
+      </div>
 
-      <details id="text-details">
-        <summary>Paste the page text instead</summary>
+      <div id="text-details" hidden>
         <textarea id="text-input" rows="8" aria-label="Pasted course materials page text"
           placeholder="Select everything on your course materials page, copy, and paste it here."></textarea>
-        <button type="button" class="btn btn-primary" id="parse-text-btn">Read my pasted text</button>
-      </details>
+      </div>
 
-      <p class="privacy-note">Pasted text is read entirely in your browser. Captures are sent
-        once through this site&rsquo;s parser to an outside automated reading service that
-        extracts your item list (course, title, format, ISBN, and any printed price), and this
-        site never stores them. Price lookups send only the ISBNs from your confirmed list,
-        nothing about you or your courses.</p>
+      <button type="button" class="btn btn-primary btn-big btn-go" id="go-btn">Get my answer</button>
+
+      <p class="privacy-note">Pasted text stays in your browser. Captures are read once by an
+        outside reading service and never stored. Price lookups send only ISBNs.
+        <a href="why.html">More</a>.</p>
 
       <div id="input-errors" class="notice notice-warn" hidden></div>
     </section>
@@ -133,10 +120,8 @@
 
     <p class="screen-deadline" id="screen-deadline"></p>
 
-    <p class="trust-line">Free, no sign-up required. If the answer is &ldquo;keep the
-      bundle,&rdquo; we&rsquo;ll say that, loud and clear. Nothing stored, no tracking, no ads,
-      and this site earns nothing either way. Built by an SSU student.
-      <a href="why.html">Why trust this?</a></p>
+    <p class="trust-line">Free, no sign-up, nothing stored, no ads. Built by an SSU student,
+      and this site earns nothing either way. <a href="why.html">Why trust this?</a></p>
   </main>
 
   <footer class="site-footer">
