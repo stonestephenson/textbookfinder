@@ -1,72 +1,60 @@
-DESIGN DIRECTION — istheseawolfbundleworthit
+# Design direction — "liquid glass" (owner-set, 2026-08-12)
 
-Core metaphor: a receipt, not a pricing page. The itemized comparison is the
-emotional center of this tool and should read like something printed at a
-register — line items, aligned decimals, a rule above the total.
+The owner's reference is **apple.com with the Liquid Glass feel: minimalistic, but
+purposeful.** This document replaces the previous receipt-metaphor direction entirely.
+Correctness rules (claims sourcing, cart framing, confirmation gate) live in CLAUDE.md and
+are untouched by any visual choice here.
 
-Purpose: a single-purpose cost calculator that a skeptical student and a
-skeptical faculty advisor both trust immediately. Closest reference points in
-spirit: a tax bracket calculator, a utility bill estimator, a nutrition label.
-NOT a startup landing page, NOT a campaign site.
+## The feel
 
-Tone: plain, exact, unhurried, unbranded, auditable.
+Calm, premium, confident. Few words, huge type, generous air. Content floats on frosted
+glass above a softly tinted wash. Nothing looks like a form: controls read as objects
+(pills, segments), not fields. One vibrant blue carries every interactive element; nothing
+else competes with it.
 
-TYPOGRAPHY
-- One workhorse sans for interface text. Not Inter, not Roboto.
-- All currency, ISBNs, and unit counts in a mono or tabular-figure face so
-  digits align vertically in the itemized list. This is functional, not stylistic.
-- The verdict dollar difference is the largest element on the page by a wide
-  margin. Everything else steps down sharply.
+## Tokens
 
-COLOR
-- Near-neutral base. Paper, ink, one mid grey for secondary text.
-- Exactly one accent color, reserved for a single role: the single-use access
-  code warning flag (MyLab, MindTap, WebAssign, Cengage, Pearson, Connect, ALEKS).
-- Verdict states get IDENTICAL color treatment. No green/red. No success or
-  warning semantics on the recommendation itself.
+- **Type:** the system stack (`-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+  Roboto, ...`). Headlines semibold with tight (−0.015em to −0.03em) tracking. Body ~17px.
+  Numbers use `font-variant-numeric: tabular-nums`; no monospace anywhere.
+- **Light:** page `#f5f5f7` under a barely-there radial wash of blue/violet; ink `#1d1d1f`;
+  secondary `#6e6e73`; hairline `rgba(0,0,0,0.10)`.
+- **Dark:** page `#000`–`#161617` with the same wash brightened; ink `#f5f5f7`; secondary
+  `#a1a1a6`; hairline `rgba(255,255,255,0.16)`.
+- **Accent (interactive only):** `#0071e3` light / `#2997ff` dark — buttons and links, nothing
+  else.
+- **Warning (access-code flags only):** Apple orange (`#c93400` light / `#ff9f0a` dark). Never
+  used decoratively.
+- **Glass:** cards and the drop zone are translucent surfaces —
+  `backdrop-filter: blur(18px) saturate(1.8)`, background `rgba(255,255,255,0.62)` light /
+  `rgba(28,28,30,0.55)` dark, a 1px inner light edge, soft wide shadow, radius 20–24px.
+  Buttons and segmented controls are full pills.
 
-LAYOUT
-- Single column, generous measure. No hero section.
-- Input is above the fold with at most two sentences above it.
-- All explanation, methodology, and background lives BELOW the verdict.
-- Three distinct screens, styled separately: input, parse-confirmation, verdict.
-- The parse-confirmation screen must feel editable and inviting — fields that
-  visibly want correcting, not a wall of read-only text. This is the trust surface.
+## Structure
 
-MOTION
-- Almost none. One exception: the verdict total settling into place after the
-  user confirms. Anything more reads as marketing.
+- Hero text and the landing flow are **centered**. The units control is a pill segment
+  inside a sentence. One glass capture zone, one blue pill CTA. Tiny gray links for the
+  alternates.
+- The answer screen leads with the giant answer word (gradient ink, identical treatment for
+  every state — the site never colors Yes differently from No). The cost summary is an
+  Apple-bag-style list: hairline-separated rows, right-aligned tabular numbers, emphasized
+  total. No dotted leaders.
+- The deadline appears on every screen (slim line or action line).
+- Motion glides: cards rise and fade on `cubic-bezier(0.32, 0.72, 0, 1)`, the answer word
+  settles from a slight blur, list rows cascade a few tens of ms apart. Everything obeys
+  `prefers-reduced-motion`.
 
-DO NOT USE
-- Gradients of any kind, glassmorphism, three-card feature grids, testimonial
-  sections, emoji verdicts, stock illustration, badge/pill clusters.
-- SSU blue and gold, or anything resembling official university branding — this
-  tool must never be mistakable for an SSU or bookstore product.
-- Cream + serif + terracotta, or near-black + acid green. Both are current AI
-  defaults.
+## Still banned
 
-COPY RULES (these are correctness rules, not style)
-- Never phrase anything as what a course requires. Always "your cart shows."
-- Never display a price the tool didn't source.
-- Opt-out deadline is prominent on every screen.
+- Color-coding the verdict states differently from one another (neutrality is a trust
+  feature; all states share one treatment).
+- The warning orange anywhere except access-code flags.
+- Dense form scaffolding: visible steppers, numbered instructions, boxed fieldsets.
+- Em dashes in copy; advocacy phrasing; anything CLAUDE.md's invariants forbid.
 
----
+## Audit
 
-## Addendum: the answer-first revision (2026-08-12, owner-approved)
-
-The owner redirected the flow to answer-first ("most users just want the answer"), which
-supersedes three lines above; everything else in this document still binds.
-
-- **The one-word answer (No. / Yes. / Close. / Almost. / Can't say.) is now the largest
-  element** on the verdict screen, not the difference figure. The figure stays on the
-  receipt's Difference line at receipt scale. All answer states keep identical color
-  treatment; the word carries `data-audit="verdict-figure"` so the audit's size check
-  follows it.
-- **A one-line hero exists on the landing step only** (title, one-sentence lede, the
-  units-to-bill row). On later steps it collapses to a small brand line so the answer
-  dominates.
-- **Motion expanded, deliberately**: cards slide in on step changes, the answer word
-  settles, receipt lines print in sequence. Everything remains disabled under
-  prefers-reduced-motion.
-- The long-form trust content lives on `why.html`; the deadline still appears on every
-  screen (slim line on input/confirm, action line + full note on the verdict).
+`checks/design-audit.mjs` enforces this direction: glass materials on cards, pill CTAs, the
+accent-discipline rules above, tabular right-aligned money, the answer word as the dominant
+element, contrast/targets/labels/tab-order, deadline on every screen, and the
+course-requirement grep. Recalibrations must be disclosed in the run output or notes.

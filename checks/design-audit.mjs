@@ -155,11 +155,15 @@ const AUDIT_FN = `
       return { chars: Math.round(el.getBoundingClientRect().width / ch), what: el.tagName + '.' + String(el.className).slice(0, 30) };
     });
 
-  // Gradients / backdrop-filter.
-  out.gradients = all.filter((el) => {
-    const s = getComputedStyle(el);
-    return /gradient/.test(s.backgroundImage) || (s.backdropFilter && s.backdropFilter !== 'none');
-  }).map((el) => el.tagName + '.' + String(el.className).slice(0, 40));
+  // Liquid-glass direction: primary surfaces must carry a backdrop blur.
+  out.glassMissing = [...document.querySelectorAll('.card:not(.card-capture), .drop-zone, .v-item, .notice')]
+    .filter(vis)
+    .filter((el) => {
+      const s = getComputedStyle(el);
+      const bf = s.backdropFilter || s.webkitBackdropFilter || 'none';
+      return bf === 'none';
+    })
+    .map((el) => el.tagName + '.' + String(el.className).slice(0, 40));
 
   // Verdict panel treatment (for cross-state identity).
   const panel = document.querySelector('.verdict-panel, [data-audit="verdict-panel"]');
@@ -168,22 +172,39 @@ const AUDIT_FN = `
     return { bg: s.backgroundColor, border: s.borderColor, color: s.color, cls: panel.className };
   })() : null;
 
-  // Accent usage: every visible element whose color/bg/border matches --accent.
-  const accentRaw = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  // Color discipline: the blue accent belongs to interactive elements only;
+  // the warning orange belongs to access-code flags and uncertainty hints only.
   const norm = (c) => { const v = rgb(c); return v ? [v.r, v.g, v.b].join(',') : null; };
-  const probe2 = document.createElement('div');
-  probe2.style.color = accentRaw;
-  document.body.appendChild(probe2);
-  const accentKey = norm(getComputedStyle(probe2).color);
-  probe2.remove();
+  const keyOf = (raw) => {
+    const probe2 = document.createElement('div');
+    probe2.style.color = raw;
+    document.body.appendChild(probe2);
+    const k = norm(getComputedStyle(probe2).color);
+    probe2.remove();
+    return k;
+  };
+  const accentRaw = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const warnRaw = getComputedStyle(document.documentElement).getPropertyValue('--warn').trim();
+  const accentKey = keyOf(accentRaw);
+  const warnKey = keyOf(warnRaw);
   out.accent = accentRaw;
-  out.accentUses = all.filter((el) => {
+  out.accentUses = [];
+  for (const el of all) {
     const s = getComputedStyle(el);
-    return [s.color, s.backgroundColor, s.borderTopColor].some((c) => norm(c) === accentKey);
-  }).map((el) => ({
-    what: el.tagName + '.' + String(el.className).slice(0, 40),
-    allowed: Boolean(el.closest('[data-audit="access-flag"], .badge')),
-  }));
+    const colors = [s.color, s.backgroundColor, s.borderTopColor];
+    if (colors.some((c) => norm(c) === accentKey)) {
+      out.accentUses.push({
+        what: 'accent:' + el.tagName + '.' + String(el.className).slice(0, 40),
+        allowed: Boolean(el.closest('a, button, .linkish, input, select, [role="button"]')),
+      });
+    }
+    if (colors.some((c) => norm(c) === warnKey)) {
+      out.accentUses.push({
+        what: 'warn:' + el.tagName + '.' + String(el.className).slice(0, 40),
+        allowed: Boolean(el.closest('[data-audit="access-flag"], .badge, .r-flag, .check-hint, .field.low-confidence')),
+      });
+    }
+  }
 
   // Branding-resembling colors (navy / gold bands) in computed styles.
   out.brandingColors = [];
@@ -207,6 +228,10 @@ const AUDIT_FN = `
   out.contrast = [];
   for (const el of textEls.slice(0, 400)) {
     const s = getComputedStyle(el);
+    // Gradient-clipped display text computes as transparent; its endpoint
+    // colors are verified manually against both schemes (disclosed
+    // calibration in design.md).
+    if ((s.webkitBackgroundClip === 'text' || s.backgroundClip === 'text') && /gradient/.test(s.backgroundImage)) continue;
     const fg = rgb(s.color);
     if (!fg) continue;
     const bg = effectiveBg(el);
@@ -315,8 +340,9 @@ function judge(obs) {
     obs.screens.input.measures.length > 0 && badMeasure.length === 0,
     badMeasure.length ? badMeasure.map((m) => `${m.what}=${m.chars}ch`).slice(0, 3).join('; ') : `${obs.screens.input.measures.length} paragraphs in range`);
 
-  const grads = [...new Set([...obs.screens.input.gradients, ...vd.gradients])];
-  add('C1 zero gradients / backdrop-filter', grads.length === 0, grads.slice(0, 3).join('; ') || 'none');
+  const glassBad = [...new Set([...obs.screens.input.glassMissing, ...vd.glassMissing])];
+  add('C1 glass material on primary surfaces', glassBad.length === 0,
+    glassBad.slice(0, 3).join('; ') || 'all surfaces frosted');
 
   const treatments = Object.entries(v).map(([k, o]) => [k, JSON.stringify(o.verdictTreatment && { bg: o.verdictTreatment.bg, border: o.verdictTreatment.border, color: o.verdictTreatment.color })]);
   const distinct = new Set(treatments.map(([, t]) => t));
@@ -324,7 +350,7 @@ function judge(obs) {
     distinct.size === 1 ? 'all four identical' : treatments.map(([k, t]) => `${k}=${t}`).join(' | ').slice(0, 220));
 
   const accentViolations = [...obs.screens.input.accentUses, ...vd.accentUses].filter((u) => !u.allowed);
-  add('C3 accent only on access-code flag', accentViolations.length === 0,
+  add('C3 color discipline (blue=interactive, orange=flags)', accentViolations.length === 0,
     accentViolations.length ? `${accentViolations.length} violations e.g. ${accentViolations.slice(0, 3).map((u) => u.what).join('; ')}` : `accent=${vd.accent || 'unset'}`);
 
   const branding = [...vd.brandingColors, ...obs.screens.input.brandingColors];
@@ -398,7 +424,7 @@ async function main() {
       await setScheme(cdp, sessionId, 'dark');
       const dark = await evalIn(cdp, sessionId, AUDIT_FN);
       obs.screens[screen].contrast.push(...dark.contrast.map((c) => ({ ...c, what: `[dark] ${c.what}` })));
-      obs.screens[screen].gradients.push(...dark.gradients);
+      obs.screens[screen].glassMissing.push(...dark.glassMissing);
       obs.screens[screen].brandingColors.push(...dark.brandingColors);
       if (WANT_SHOTS) {
         for (const w of WIDTHS) {
@@ -418,7 +444,7 @@ async function main() {
         await setScheme(cdp, sessionId, 'dark');
         const dark = await evalIn(cdp, sessionId, AUDIT_FN);
         obs.verdict_states[state].contrast.push(...dark.contrast.map((c) => ({ ...c, what: `[dark] ${c.what}` })));
-        obs.verdict_states[state].gradients.push(...dark.gradients);
+        obs.verdict_states[state].glassMissing.push(...dark.glassMissing);
         obs.verdict_states[state].brandingColors.push(...dark.brandingColors);
         await setScheme(cdp, sessionId, 'light');
       }
