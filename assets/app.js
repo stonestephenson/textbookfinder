@@ -626,7 +626,7 @@ function applyCapturePrices() {
 // resolve endpoint for a strong title+author match and fill the ISBN in,
 // labeled on the confirm screen so the user blesses the match before any
 // price hangs off it. Best-effort: silence on any failure.
-async function resolveMissingIsbns() {
+async function resolveMissingIsbns(attempt = 1) {
   if (!config.resolveEndpoint) return;
   const targets = state.items.filter((it) => !it.skipped && !isbnish(it.isbn)
     && (it.title ?? '').trim() && (it.author ?? '').trim() && !it.resolved);
@@ -652,7 +652,14 @@ async function resolveMissingIsbns() {
         applied += 1;
       }
     });
-    if (applied === 0) return;
+    if (applied === 0) {
+      // A cold catalog query can outrun the server's upstream timeout; the
+      // second attempt hits a warm cache and usually lands. One retry only.
+      if (attempt < 2 && body.resolved.every((r) => !r?.isbn)) {
+        setTimeout(() => resolveMissingIsbns(attempt + 1), 1500);
+      }
+      return;
+    }
     if (state.step === 'confirm') {
       // Re-render to show the match, preserving the user's focus and caret
       // if they were mid-edit (every confirm field has a stable id).
@@ -798,6 +805,8 @@ function renderVerdict() {
         })() : ''}
         ${loading ? '<div class="price-found"><span class="price-src">checking prices&hellip;</span></div>' : ''}
         ${summary}
+        ${found ? `<p class="small muted">Think it might be cheaper? Check a link, then change the number.</p>
+          <div class="retailer-links">${retailerLinks(item)}</div>` : ''}
         <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
           ${!item.skipped && item.userPrice == null && !isbnish(item.isbn)
     ? `<p class="small muted">${(item.author ?? '').trim()
