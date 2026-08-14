@@ -81,6 +81,29 @@ export const config = {
     'courseware',
   ],
 
+  // Where to buy each courseware platform. Publishers sell these directly and
+  // no book marketplace carries them, so an access code links to its publisher
+  // instead of Amazon/AbeBooks/eBay. Matched case-insensitively against the
+  // item title; `name` is shown, `url` is a stable publisher brand domain where
+  // the student sees the real price at checkout. There is no courseware price
+  // API — this is the one-tap path when the capture didn't show the price.
+  courseware: [
+    { match: 'zyBooks', name: 'zyBooks', url: 'https://www.zybooks.com/' },
+    { match: 'WebAssign', name: 'WebAssign', url: 'https://www.webassign.com/' },
+    { match: 'MindTap', name: 'Cengage', url: 'https://www.cengage.com/' },
+    { match: 'Cengage', name: 'Cengage', url: 'https://www.cengage.com/' },
+    { match: 'MyLab', name: 'Pearson', url: 'https://www.pearson.com/' },
+    { match: 'Mastering', name: 'Pearson', url: 'https://www.pearson.com/' },
+    { match: 'Revel', name: 'Pearson', url: 'https://www.pearson.com/' },
+    { match: 'ALEKS', name: 'ALEKS', url: 'https://www.aleks.com/' },
+    { match: 'Connect', name: 'McGraw Hill', url: 'https://www.mheducation.com/' },
+    { match: 'Achieve', name: 'Macmillan', url: 'https://www.macmillanlearning.com/' },
+    { match: 'LaunchPad', name: 'Macmillan', url: 'https://www.macmillanlearning.com/' },
+    { match: 'Sapling', name: 'Macmillan', url: 'https://www.macmillanlearning.com/' },
+    { match: 'Top Hat', name: 'Top Hat', url: 'https://tophat.com/' },
+    { match: 'Hawkes', name: 'Hawkes Learning', url: 'https://www.hawkeslearning.com/' },
+  ],
+
   // Where "find the real price" links point. {q} is replaced with the ISBN
   // when known, otherwise the title. The tool links out and shows YOUR
   // entered price — it never asserts prices itself (METHODOLOGY.md).

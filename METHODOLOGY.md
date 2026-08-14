@@ -129,6 +129,13 @@ publisher. They flow through the same arithmetic as everything else. **If new ac
 buying more expensive than the bundle, the tool says to stay in.** This tool is a calculator,
 not a campaign: whichever number is lower wins.
 
+Courseware has **no automatic price source** — publishers (zyBooks, Pearson, Cengage, McGraw
+Hill, Macmillan, and others) sell direct, and no catalog API exposes those prices, so the used-book
+lookup and the ISBN matcher deliberately skip access codes. The one automatic price for a code is
+the figure printed in your own capture (extracted like any other, used only for access codes). When
+the capture shows no price, the item links to **its publisher** (from `assets/config.js`), not a book
+marketplace: one tap to the only place that sells it, where you read the real price and enter it.
+
 ## What the tool parses, and why you confirm it
 
 Input is your own bookstore course-materials page — one or more screenshots or a full-page PDF

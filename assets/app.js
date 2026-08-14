@@ -739,7 +739,27 @@ async function fetchPrices() {
 
 // ── Verdict step ────────────────────────────────────────────────────────────
 
+// The publisher that sells a given courseware platform, matched by title.
+function coursewareSeller(item) {
+  const hay = `${item.title ?? ''} ${FORMAT_LABELS[item.format] ?? ''}`;
+  return (config.courseware ?? []).find((c) => {
+    const pat = c.match.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${pat}\\b`, 'i').test(hay);
+  }) ?? null;
+}
+
+// Where to send the student to find or verify a price. Books get the used-book
+// marketplaces; access codes get their publisher, since courseware is sold
+// direct and never on a book marketplace. Always at least one link.
 function retailerLinks(item) {
+  if (item.isAccessCode) {
+    const seller = coursewareSeller(item);
+    if (seller) {
+      return `<a href="${esc(seller.url)}" target="_blank" rel="noopener noreferrer">Get it from ${esc(seller.name)}&nbsp;&#8599;</a>`;
+    }
+    const q = encodeURIComponent(`${item.title || 'course access code'} price`);
+    return `<a href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener noreferrer">Find where to buy&nbsp;&#8599;</a>`;
+  }
   const q = encodeURIComponent((item.isbn ?? '').trim() || item.title);
   return config.retailers
     .map((r) => `<a href="${esc(r.searchUrl.replace('{q}', q))}" target="_blank" rel="noopener noreferrer">${esc(r.name)}</a>`)
@@ -818,11 +838,11 @@ function renderVerdict() {
         <div class="v-title">${esc(item.title || item.isbn || 'Untitled item')}</div>
         <div class="v-meta">${esc([item.courseCode, FORMAT_LABELS[item.format]].filter(Boolean).join(' · '))}${item.isbn ? ` · ISBN <span class="num">${esc(item.isbn)}</span>` : ''}</div>
         ${item.isAccessCode ? (() => {
-          // The publisher nudge stays visible for auto-found codes too: only
-          // a price from the user's own capture or their own typing quiets it.
-          let codeNote = '';
-          if (item.userPrice == null && !loading) codeNote = ' Check the publisher&rsquo;s own price for new access and enter that.';
-          else if (item.priceSource === 'auto') codeNote = ' The found offer is a new card, but the publisher&rsquo;s own site is the surest source. Worth checking its price too.';
+          const seller = coursewareSeller(item);
+          const who = seller ? `by ${esc(seller.name)}` : 'by the publisher';
+          const codeNote = item.userPrice == null && !loading
+            ? ` Sold new ${who} — open the link below and enter the price you see.`
+            : ` Sold new ${who}; the link below is the surest price to check.`;
           return `<div class="badge" data-audit="access-flag">Single-use access code</div>
           <div class="v-meta">Access codes usually can&rsquo;t be bought used.${codeNote}</div>`;
         })() : ''}
@@ -831,7 +851,7 @@ function renderVerdict() {
         ${found ? '<p class="small muted">Think it might be cheaper? Check a link, then change the number.</p>' : ''}
         ${loading ? '' : `<div class="retailer-links">${retailerLinks(item)}</div>`}
         <div class="price-manual" ${manualHidden ? 'hidden' : ''}>
-          ${!item.skipped && item.userPrice == null && !isbnish(item.isbn)
+          ${!item.skipped && item.userPrice == null && !isbnish(item.isbn) && !item.isAccessCode
     ? (item.resolving
       ? '<p class="small muted">Matching this title to its book&hellip;</p>'
       : `<p class="small muted">${(item.author ?? '').trim()

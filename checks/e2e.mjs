@@ -293,6 +293,25 @@ async function browserFlows(base) {
       expect(r.pending, 'figure should stay pending');
     });
 
+    await check('flow: an access code links to its publisher, not book marketplaces', async () => {
+      const r = await page(`(async () => {
+        document.getElementById('units-input').value = '3';
+        document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('text-input').value = 'CS 315 01\\nzyBooks: Data Structures and Algorithms\\nFormat: Access code';
+        document.getElementById('go-btn').click();
+        ${sleep(300)}
+        document.getElementById('confirm-btn').click();
+        ${sleep(400)}
+        return {
+          accessFlags: document.querySelectorAll('.v-item [data-audit="access-flag"]').length,
+          links: [...document.querySelectorAll('.retailer-links a')].map((a) => a.href),
+        };
+      })()`);
+      expect(r.accessFlags >= 1, 'zyBooks item not flagged as an access code');
+      expect(r.links.some((h) => h.includes('zybooks.com')), `links: ${r.links.join(', ')}`);
+      expect(!r.links.some((h) => h.includes('amazon')), 'an access code must not link to Amazon');
+    });
+
     await check('flow: manual entry opens an editable empty item', async () => {
       const r = await page(`(async () => {
         document.getElementById('manual-entry-link').click();
