@@ -58,9 +58,22 @@ wins. `applyCapturePrices()` and `fetchPrices()` fill `userPrice` **only when it
 editing the price field sets `priceSource = 'user'`, which nothing later overwrites. So the order
 of the pipeline stages is a fallback chain, not a race.
 
-**Cross-file contract:** `api/parse.js` `RESULT_SCHEMA` mirrors what `adoptItems()` reads. If you
-add or rename a parsed field, change **both** — the schema (what the model returns) and
-`adoptItems()` (what the client trusts).
+**Cross-file contract:** `api/parse.js` `RESULT_SCHEMA` mirrors what the client reads. Items feed
+`adoptItems()`; the two top-level fields `listCutOff` (boolean) and `courses` (`[{code, title}]`,
+the full registered-course list including no-material courses) feed the confirm-screen note and
+the units estimate directly. If you add or rename any parsed field, change **both** the schema
+and the client that trusts it.
+
+**The units estimate** (screenshot path only). After `adoptItems()`, `applyUnitsEstimate()` in
+`assets/app.js` seeds the units field from `body.courses`: `estimateUnits()`
+(`assets/estimate-units.js`, pure/tested) normalizes each code to the join key (`CS 454 001` →
+`CS 454`) and sums units from `assets/course-units.js`. That table is **generated**, not
+hand-edited — `scripts/build-course-units.mjs` builds it from the term's Schedule of Classes
+(`data/`) via the pure `scripts/parse-schedule.js` (tested), resolving variable-unit courses to
+the rounded median of their offerings and stamping the term. The seed is applied only when the
+capture wasn't flagged cut off, the table's term matches `config.term`, and the user hasn't
+touched units (`state.unitsTouched`). It is a better default, never an assertion — always
+editable, nothing computed until confirmed. Regeneration is a per-semester step (README).
 
 **Stale-lookup guard:** `fetchSeq` (a monotonic counter) invalidates an in-flight price fetch
 when the user leaves the step or edits the list; `resolveInFlight` makes resolution single-flight.
@@ -95,6 +108,13 @@ precision/robustness:
 **Offer selection** (`api/_pick-offer.js`):
 - `MIN_RENT_DAYS = 110` (a rental shorter than a term isn't a fair comparable to the bundle).
   Rationale sourced in METHODOLOGY + CLAIMS #38.
+
+**Units estimate**:
+- `config.assumedUnitsPerCourse = 3` (units for a course the table doesn't carry — the one knob
+  in `config.js`, since a maintainer might tune it per campus).
+- Variable-unit resolution = rounded **median** of a course's offered values, in
+  `scripts/parse-schedule.js` (build time). Median, not first-seen, so it's deterministic and
+  representative; change it there if a better central estimate is wanted.
 
 **Client capture pipeline** (`assets/app.js` `prepareImage`) — image prep before upload:
 - `MAX_EDGE = 2000` (downscale long edge), `MAX_BYTES = 2_500_000`, JPEG quality `0.85`.

@@ -385,6 +385,24 @@ async function browserFlows(base) {
       expect(r.err.includes('between 1 and'), `error was: ${r.err}`);
     });
 
+    await check('units estimate: the shipped course table + estimator load and sum correctly', async () => {
+      const r = await page(`(async () => {
+        const { estimateUnits } = await import('/assets/estimate-units.js');
+        const { courseUnits, courseUnitsMeta } = await import('/assets/course-units.js');
+        // A CS senior's cart, codes as a capture would carry them (with sections).
+        const cart = [{ code: 'CS 454 001' }, { code: 'CS 496 002' }, { code: 'CS 390 001' }];
+        const est = estimateUnits(cart, courseUnits, { assumedUnitsPerCourse: 3, maxUnits: 24 });
+        return {
+          term: courseUnitsMeta.term, size: Object.keys(courseUnits).length,
+          units: est.units, matched: est.matched, assumed: est.assumed,
+        };
+      })()`);
+      expect(r.term === 'Fall 2026', `table term: ${r.term}`);
+      expect(r.size > 300, `table looks too small: ${r.size}`);
+      expect(r.units === 8, `estimated units (4+3+1): ${r.units}`);
+      expect(r.matched === 3 && r.assumed === 0, `matched ${r.matched}, assumed ${r.assumed}`);
+    });
+
     await check('trust page: why.html serves with the sourced content', async () => {
       const r = await fetch(`${base}/why.html`);
       expect(r.status === 200, `got ${r.status}`);

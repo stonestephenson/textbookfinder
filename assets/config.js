@@ -58,6 +58,13 @@ export const config = {
   // Sanity bound for the units input.
   maxUnits: 24,
 
+  // Units assumed for a registered course we couldn't find in the course→units
+  // table (assets/course-units.js, built from the term's Schedule of Classes).
+  // Only used for the rare unmatched course when seeding the units estimate;
+  // the student always sees and can correct the number. SSU's most common
+  // lecture load is 3–4 units; 3 is the conservative default. See METHODOLOGY.
+  assumedUnitsPerCourse: 3,
+
   // Case-insensitive patterns that mark an item as a single-use access code /
   // courseware (can't be bought used). Extend as new platforms appear.
   accessCodePatterns: [

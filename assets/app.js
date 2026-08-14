@@ -6,12 +6,17 @@
 import { config } from './config.js';
 import { parseText } from './parse-text.js';
 import { computeVerdict } from './verdict.js';
+import { courseUnits, courseUnitsMeta } from './course-units.js';
+import { estimateUnits } from './estimate-units.js';
 import './bind.js'; // config values + verified links into static copy
 
 const state = {
   step: 'input',
   items: [],
   units: null,
+  // Set true once the user touches the hero units control, so a course-derived
+  // estimate never overrides a number they entered on purpose.
+  unitsTouched: false,
   warnings: [],
   // Price auto-fill: 'idle' | 'loading' | 'done' | 'unavailable'. fetchSeq
   // invalidates an in-flight lookup when the user leaves or edits the list.
@@ -147,6 +152,22 @@ function readUnits() {
   const v = Number($('units-input').value);
   if (Number.isFinite(v) && v >= 1 && v <= config.maxUnits) return v;
   return null;
+}
+
+// Seed the units field from the registered-course list a screenshot gave us,
+// but only when we can trust it: the capture looked complete (no cutoff), the
+// course→units table matches the deployed term (a stale table is worse than the
+// baseline), the user hasn't set units by hand, and the estimate produced a
+// number. It stays fully editable on the confirm screen — this is a better
+// default than a flat 15, never an assertion. See METHODOLOGY.
+function applyUnitsEstimate(courses, listCutOff) {
+  if (state.unitsTouched || listCutOff) return;
+  if (courseUnitsMeta.term !== config.term) return;
+  const est = estimateUnits(courses, courseUnits, {
+    assumedUnitsPerCourse: config.assumedUnitsPerCourse,
+    maxUnits: config.maxUnits,
+  });
+  if (est) state.units = est.units;
 }
 
 // ── Input step ──────────────────────────────────────────────────────────────
@@ -320,6 +341,7 @@ async function handleCaptureFiles(fileList) {
       ? ['Some items may be missing here. Check your cart so nothing’s left out.']
       : [];
     state.units = readUnits() ?? state.units;
+    applyUnitsEstimate(body.courses, body.listCutOff);
     stagedFiles = [];
     renderStaged();
     renderConfirm();
@@ -1122,9 +1144,9 @@ function nudgeUnits(delta) {
   input.value = next;
   updateBill();
 }
-$('units-input')?.addEventListener('input', updateBill);
-$('units-minus')?.addEventListener('click', () => nudgeUnits(-1));
-$('units-plus')?.addEventListener('click', () => nudgeUnits(1));
+$('units-input')?.addEventListener('input', () => { state.unitsTouched = true; updateBill(); });
+$('units-minus')?.addEventListener('click', () => { state.unitsTouched = true; nudgeUnits(-1); });
+$('units-plus')?.addEventListener('click', () => { state.unitsTouched = true; nudgeUnits(1); });
 // The slim deadline line riding under the tool (the verdict screen carries
 // its own fuller deadline note, so CSS hides this one there).
 $('screen-deadline').textContent = config.optOutDeadline

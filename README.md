@@ -55,9 +55,21 @@ The checklist, once per term (~20 minutes):
 4. **`accessCodePatterns`** — add any new courseware platform names students report.
    Also re-check the outbound links (`bookstoreUrl`, `courseMaterialsUrl`, `courseFinderUrl`,
    `optOutUrl`) still resolve — bookstore platforms move URLs without notice.
-5. **Update [CLAIMS.md](CLAIMS.md)** — the entries for the price (claim #1) and any other value
+5. **Rebuild the course→units table** — a **per-semester** step (the offering changes every
+   term). It is what lets the tool seed the units field from a student's actual courses instead
+   of defaulting to 15. Download the term's **Schedule of Classes** (a public PDF from the
+   Registrar) into `data/`, set `term` (step 1) first, then run:
+   ```sh
+   node scripts/build-course-units.mjs data/<Schedule_of_Classes>.pdf
+   ```
+   That regenerates `assets/course-units.js`, stamped with `config.term`. Commit both the source
+   file and the regenerated table. `.pdf` input needs `pdftotext` (poppler); `.docx` uses macOS
+   `textutil`; a plain `.txt` export needs no tools. If you skip this step the table's `term`
+   won't match `config.term`, and the site safely falls back to the flat 15 baseline rather than
+   trusting a stale table. Details in [METHODOLOGY.md](METHODOLOGY.md).
+6. **Update [CLAIMS.md](CLAIMS.md)** — the entries for the price (claim #1) and any other value
    you changed, citing your new source. The site's credibility is this file.
-6. **Sanity-check the flow** — open the site, paste a sample cart, confirm, type a price, and
+7. **Sanity-check the flow** — open the site, paste a sample cart, confirm, type a price, and
    check that the bundle math uses the new rate.
 
 If the price changed, the copy in `index.html` does **not** need editing — every current-rate
@@ -174,12 +186,17 @@ assets/config.js          ★ Semester config — the only file that needs regul
 assets/bind.js            Binds config values + verified links into the static HTML (both pages)
 assets/parse-text.js      In-browser parser for pasted text (portal-dialect aware)
 assets/verdict.js         The arithmetic + recommendation rules (pure, tested)
+assets/estimate-units.js  Course list → estimated unit load, to seed the units field (pure, tested)
+assets/course-units.js    ★ GENERATED course→units table (per semester; do not hand-edit)
 api/parse.js              Serverless screenshot parser (the only file that calls an AI model)
 api/price.js              Serverless price lookup (ISBNs in, real offers out; BooksRun)
 api/_pick-offer.js         Offer selection policy (pure, tested)
 api/resolve.js            Serverless ISBN resolver (title+author → ISBN; OpenLibrary)
 api/_resolve-match.js      Title+author match scoring (pure, tested)
-tests/                    node --test suites: verdict, text parser, offer selection, ISBN match
+scripts/parse-schedule.js Pure parser: Schedule-of-Classes text → course→units (tested)
+scripts/build-course-units.mjs  Per-semester build: schedule PDF/docx/txt → assets/course-units.js
+data/                     Source Schedules of Classes (provenance for the units table)
+tests/                    node --test suites: verdict, text parser, offers, ISBN + schedule + units
 checks/                   Browser harness: e2e.mjs, design-audit.mjs, parse-live.mjs, dev-server.mjs
 ARCHITECTURE.md           The pipeline, the item shape, and the knobs outside config.js
 METHODOLOGY.md            Exactly how the verdict is computed, and what the tool doesn't know

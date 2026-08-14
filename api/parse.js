@@ -27,7 +27,7 @@ const MAX_IMAGES = 4;
 const RESULT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['pageLooksLikeCourseMaterials', 'items', 'listCutOff'],
+  required: ['pageLooksLikeCourseMaterials', 'items', 'courses', 'listCutOff'],
   properties: {
     pageLooksLikeCourseMaterials: {
       type: 'boolean',
@@ -75,6 +75,22 @@ const RESULT_SCHEMA = {
       type: 'boolean',
       description: 'default false. true ONLY on visible evidence that items are missing: a listed course whose materials section is collapsed/not expanded (course name shown, no items under it), or an item visibly sliced off at the bottom edge. A list that ends naturally (footer, whitespace, page total) is complete → false',
     },
+    courses: {
+      type: 'array',
+      description: "every registered course visible on the page, INCLUDING courses that show no materials or say none are required. Used only to estimate the student's unit load; never priced.",
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['code', 'title'],
+        properties: {
+          code: {
+            anyOf: [{ type: 'string' }, { type: 'null' }],
+            description: 'course code exactly as printed, e.g. "CS 454" or "MATH 161", or null if unreadable',
+          },
+          title: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+        },
+      },
+    },
   },
 };
 
@@ -87,7 +103,8 @@ Extract every course material item that is actually visible. Rules:
 - author and edition: record them exactly as printed (portals often show a "by AUTHOR | Edition: 3RD 13" line under the title); null when absent. These help match the book when no ISBN is shown.
 - listedPrice: if a real price is printed next to the item, record it as a plain number (no currency sign). "$0.00", "included", "free", a struck-through price, or a bundle/rental label is NOT a listed price — record null for those. If no price is legible for that item, set it to null. Never estimate, compute, or carry a price over from another item. Ignore page-level totals and "savings" figures entirely. If the digits are partially obscured or you are not certain of the amount, set its confidence to "low".
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
-- listCutOff: default false. Set true ONLY when the capture shows visible evidence that items are missing: a course is listed but its materials section is collapsed or not expanded (you can see the course name but no items under it), OR an item is visibly sliced off at the very bottom edge of the capture. Do NOT set it true just because the list could hypothetically continue: if the visible list ends naturally (a footer, whitespace, or a page total), it is complete, so set false. Never use it for missing prices (this page never prints prices, which is normal) or edition/format notation.`;
+- listCutOff: default false. Set true ONLY when the capture shows visible evidence that items are missing: a course is listed but its materials section is collapsed or not expanded (you can see the course name but no items under it), OR an item is visibly sliced off at the very bottom edge of the capture. Do NOT set it true just because the list could hypothetically continue: if the visible list ends naturally (a footer, whitespace, or a page total), it is complete, so set false. Never use it for missing prices (this page never prints prices, which is normal) or edition/format notation.
+- courses: list EVERY registered course visible on the page, including courses that show no materials or state that none are required. This is the full list of courses the student is enrolled in, separate from items (items are only the materials to buy). For each course give its code exactly as printed (e.g. "CS 454", "MATH 161") and its title; if a code is not legible, use null. Report only courses actually shown; do not invent any.`;
 
 // The swappable model call: capture blocks in, ParseResult out. The request
 // shape deliberately uses only parameters valid on every current Claude model
@@ -209,6 +226,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       wrongPage: result.pageLooksLikeCourseMaterials === false,
       items: result.items ?? [],
+      courses: result.courses ?? [],
       listCutOff: result.listCutOff === true,
     });
   } catch (err) {

@@ -147,8 +147,10 @@ async function runPath(cdp, base, name, file, expected) {
       accessFlags: document.querySelectorAll('#items-list [data-audit="access-flag"]').length,
       allValues: [...document.querySelectorAll('#items-list input')].map((i) => i.value),
       warnings: document.getElementById('confirm-warnings').textContent.trim(),
+      units: document.getElementById('confirm-units-input')?.value,
     })`);
     console.log(`      parsed ${parsed.titles.length} item(s): ${parsed.titles.join(' | ')}`);
+    console.log(`      units seeded on confirm: ${parsed.units} (15 = baseline, i.e. estimate not applied)`);
     if (parsed.warnings) console.log(`      warnings: ${parsed.warnings}`);
     problems = verify(name, expected, parsed);
 
