@@ -28,7 +28,7 @@
 - **Never assert a price the tool can't show a source for.** Exactly three price sources exist,
   each labeled in the UI (owner decision 2026-08-11, relaxing the original never-look-up rule):
   live fetched offers (`api/price.js` → BooksRun, plain non-affiliate links, policy in
-  `api/pick-offer.js` + METHODOLOGY.md), the price printed in the user's own capture (applied
+  `api/_pick-offer.js` + METHODOLOGY.md), the price printed in the user's own capture (applied
   to **access-code items only**, never books), and the user's typed numbers, which always win.
   No estimate, average, or bookstore book price ever enters the math.
 - **Never claim what a course requires.** All copy speaks in the frame "your cart shows…".
@@ -45,7 +45,7 @@
 - **Done-gate:** `bash .claude/verify.sh` (syntax-checks all JS, runs `node --test`). Green
   before any commit.
 - **Test-first** for the four pure modules — `assets/verdict.js`, `assets/parse-text.js`,
-  `api/pick-offer.js`, `api/resolve-match.js` — each fully covered in `tests/`. Never weaken a
+  `api/_pick-offer.js`, `api/_resolve-match.js` — each fully covered in `tests/`. Never weaken a
   test to make it pass.
 - **Beyond the done-gate:** `bash .claude/verify.sh` runs only the unit tests. Also run
   `node checks/e2e.mjs` (full browser flow + all three API contracts, no keys) and
@@ -61,10 +61,10 @@
 - **The model call is quarantined** in `api/parse.js` → `extractItems()`. The rest of the app
   must keep working when the endpoint is absent (`config.parseEndpoint = null`).
 - **The price call is quarantined the same way** in `api/price.js` → `pickOffer()`
-  (`api/pick-offer.js`, pure and unit-tested). With `config.priceEndpoint = null` or the
+  (`api/_pick-offer.js`, pure and unit-tested). With `config.priceEndpoint = null` or the
   endpoint down, price fields stay manual and the search links carry the flow, silently.
 - **The ISBN resolver is quarantined too** in `api/resolve.js` → `pickResolution()`
-  (`api/resolve-match.js`, pure and unit-tested). It fills a missing ISBN from title+author so
+  (`api/_resolve-match.js`, pure and unit-tested). It fills a missing ISBN from title+author so
   the price lookup has something to search (the bundle portal prints no ISBNs). With
   `config.resolveEndpoint = null` or the endpoint down, ISBN-less items just stay manual.
 - **After any substantive change to copy or verdict logic**, run a fresh-context adversarial
@@ -75,7 +75,7 @@
 ## Deploy & publish
 
 - Static + **three Vercel serverless functions** (`api/parse.js`, `api/price.js`,
-  `api/resolve.js`; `pick-offer.js`/`resolve-match.js` are imported helpers, not endpoints).
+  `api/resolve.js`; `_pick-offer.js`/`_resolve-match.js` are imported helpers, not endpoints).
   Environment: `ANTHROPIC_API_KEY` (+ optional `PARSE_MODEL`) and `BOOKSRUN_API_KEY`; set a spend
   cap on the Anthropic account. `api/resolve.js` needs no key. See README "Deploying" for the
   full checklist and the GitHub-Pages / Netlify fallbacks.

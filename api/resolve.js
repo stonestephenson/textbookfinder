@@ -1,7 +1,7 @@
 // Title+author → ISBN, via OpenLibrary's public search. The bundle portal
 // prints no ISBNs, so without this the price lookup has nothing to search by.
 //
-// The matching policy is isolated in resolve-match.js (pure, unit-tested):
+// The matching policy is isolated in _resolve-match.js (pure, unit-tested):
 // author required, surname must match, strong title overlap, edition-year
 // preference. A weak match returns null — the manual path beats a wrong book.
 // Every resolved match is shown to the user on the confirm screen before any
@@ -11,7 +11,7 @@
 // identity, no courses, no units — and nothing is logged or stored. No API
 // key involved; OpenLibrary is a public catalog.
 
-import { pickResolution, normalizeTitle } from './resolve-match.js';
+import { pickResolution, normalizeTitle } from './_resolve-match.js';
 
 // Vercel: allow the function to outlive a slow catalog query (default is 10s).
 export const maxDuration = 30;

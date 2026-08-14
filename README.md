@@ -127,7 +127,7 @@ what the pre-launch student test is for.
    **three serverless functions**: `api/parse.js` (screenshot → items, Claude vision),
    `api/resolve.js` (title+author → ISBN when the page shows none, OpenLibrary), and
    `api/price.js` (ISBN → real offer, BooksRun). Every file under `api/` auto-deploys as a
-   function; `api/pick-offer.js` and `api/resolve-match.js` are pure helpers the functions
+   function; `api/_pick-offer.js` and `api/_resolve-match.js` are pure helpers the functions
    import, not endpoints of their own.
 2. Set the environment variable `ANTHROPIC_API_KEY` (get one at console.anthropic.com).
    Optional: `PARSE_MODEL` to override the vision model — the default is `claude-haiku-4-5`
@@ -147,9 +147,9 @@ set `parseEndpoint: null`, `priceEndpoint: null`, **and** `resolveEndpoint: null
 
 Each provider is quarantined behind one function: the vision call in
 [`api/parse.js`](api/parse.js) (`extractItems`), the price source in
-[`api/price.js`](api/price.js) via the pure [`api/pick-offer.js`](api/pick-offer.js), and the
+[`api/price.js`](api/price.js) via the pure [`api/_pick-offer.js`](api/_pick-offer.js), and the
 ISBN match in [`api/resolve.js`](api/resolve.js) via the pure
-[`api/resolve-match.js`](api/resolve-match.js) — swapping any provider touches only its file.
+[`api/_resolve-match.js`](api/_resolve-match.js) — swapping any provider touches only its file.
 
 ## Handing this off
 
@@ -176,9 +176,9 @@ assets/parse-text.js      In-browser parser for pasted text (portal-dialect awar
 assets/verdict.js         The arithmetic + recommendation rules (pure, tested)
 api/parse.js              Serverless screenshot parser (the only file that calls an AI model)
 api/price.js              Serverless price lookup (ISBNs in, real offers out; BooksRun)
-api/pick-offer.js         Offer selection policy (pure, tested)
+api/_pick-offer.js         Offer selection policy (pure, tested)
 api/resolve.js            Serverless ISBN resolver (title+author → ISBN; OpenLibrary)
-api/resolve-match.js      Title+author match scoring (pure, tested)
+api/_resolve-match.js      Title+author match scoring (pure, tested)
 tests/                    node --test suites: verdict, text parser, offer selection, ISBN match
 checks/                   Browser harness: e2e.mjs, design-audit.mjs, parse-live.mjs, dev-server.mjs
 ARCHITECTURE.md           The pipeline, the item shape, and the knobs outside config.js

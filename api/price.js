@@ -1,7 +1,7 @@
 // ISBN → cheapest real offer, via BooksRun's buy-price API.
 //
 // This is the only file that talks to a price source, and the selection
-// policy is isolated in pick-offer.js so it can be tested and swapped. The
+// policy is isolated in _pick-offer.js so it can be tested and swapped. The
 // client treats this endpoint as optional: if it's down or unconfigured, the
 // verdict flow still works — price fields stay empty and the user gets the
 // search links, exactly as before this endpoint existed.
@@ -16,7 +16,7 @@
 // Deployment (Vercel): set BOOKSRUN_API_KEY in the project's environment
 // variables (free key from booksrun.com's API signup).
 
-import { pickOffer } from './pick-offer.js';
+import { pickOffer } from './_pick-offer.js';
 
 // Vercel: headroom for a large batch against a slow upstream (default 10s).
 export const maxDuration = 30;

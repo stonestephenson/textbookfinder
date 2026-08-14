@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickResolution, normalizeTitle, editionYear } from '../api/resolve-match.js';
+import { pickResolution, normalizeTitle, editionYear } from '../api/_resolve-match.js';
 
 // Docs mirror real OpenLibrary responses for q="theory of computation sipser"
 // (probe 2026-08-12). 9781133187790 is the true 3rd-edition ISBN.

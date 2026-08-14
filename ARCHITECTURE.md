@@ -71,8 +71,8 @@ Both exist so a slow network response can't clobber a newer user edit. Don't rem
 | Endpoint | Provider | Key | Pure core | Config toggle |
 |---|---|---|---|---|
 | `/api/parse` | Claude vision (`@anthropic-ai/sdk`) | `ANTHROPIC_API_KEY` | — (prompt + schema) | `parseEndpoint` |
-| `/api/resolve` | OpenLibrary (public) | none | `api/resolve-match.js` | `resolveEndpoint` |
-| `/api/price` | BooksRun | `BOOKSRUN_API_KEY` | `api/pick-offer.js` | `priceEndpoint` |
+| `/api/resolve` | OpenLibrary (public) | none | `api/_resolve-match.js` | `resolveEndpoint` |
+| `/api/price` | BooksRun | `BOOKSRUN_API_KEY` | `api/_pick-offer.js` | `priceEndpoint` |
 
 Every endpoint degrades to null-safe: set its `config.*Endpoint` to `null`, or let it 503, and
 the flow keeps working with manual pricing. The pure cores hold all the policy and are
@@ -87,12 +87,12 @@ courseware map, endpoint toggles — see its comments and the README checklist).
 below are behavioral tuning, deliberately in code, and are the ones you'd reach for to change
 precision/robustness:
 
-**ISBN matcher** (`api/resolve-match.js`) — governs false-match rate:
+**ISBN matcher** (`api/_resolve-match.js`) — governs false-match rate:
 - `overlap < 0.6` (title-token overlap acceptance floor). Lower = more matches, more wrong ones;
   higher = fewer, safer. This is the single knob for match precision/recall.
 - year pivot `<= 50` in `editionYear()` (two-digit year → 20xx vs 19xx; "13" → 2013).
 
-**Offer selection** (`api/pick-offer.js`):
+**Offer selection** (`api/_pick-offer.js`):
 - `MIN_RENT_DAYS = 110` (a rental shorter than a term isn't a fair comparable to the bundle).
   Rationale sourced in METHODOLOGY + CLAIMS #38.
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickOffer } from '../api/pick-offer.js';
+import { pickOffer } from '../api/_pick-offer.js';
 
 const ISBN = '9780134093413';
 

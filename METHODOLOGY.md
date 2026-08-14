@@ -48,7 +48,7 @@ three above, and each is labeled in the UI with which one it is.
 
 The price source is **BooksRun** (booksrun.com), queried live by ISBN at the moment you confirm
 your list — the only free, documented purchase-price API the author found that permits plain,
-untagged links (`api/price.js`; selection logic in `api/pick-offer.js`, which is fully
+untagged links (`api/price.js`; selection logic in `api/_pick-offer.js`, which is fully
 unit-tested). Selection rules:
 
 - Candidates are real purchasable offers: BooksRun's own used/new stock, its marketplace
@@ -88,7 +88,7 @@ and no fetched price is stored anywhere.
 
 The bundle portal prints no ISBNs at all (verified on a real student capture). For an item that
 carries an author, the tool asks OpenLibrary's public catalog for a match and fills the ISBN in.
-The rules are deliberately strict (`api/resolve-match.js`, fully unit-tested):
+The rules are deliberately strict (`api/_resolve-match.js`, fully unit-tested):
 
 - **An author is required.** Title-only matching confidently picks wrong books (verified: a
   title-only search for a theory-of-computation text returned a different author's textbook).
