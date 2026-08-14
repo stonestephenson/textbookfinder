@@ -316,7 +316,9 @@ async function handleCaptureFiles(fileList) {
       return;
     }
     state.items = items;
-    state.warnings = body.warnings ?? [];
+    state.warnings = body.listCutOff
+      ? ['Some items may be missing here. Check your cart so nothing’s left out.']
+      : [];
     state.units = readUnits() ?? state.units;
     stagedFiles = [];
     renderStaged();

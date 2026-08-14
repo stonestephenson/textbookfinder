@@ -27,7 +27,7 @@ const MAX_IMAGES = 4;
 const RESULT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['pageLooksLikeCourseMaterials', 'items', 'warnings'],
+  required: ['pageLooksLikeCourseMaterials', 'items', 'listCutOff'],
   properties: {
     pageLooksLikeCourseMaterials: {
       type: 'boolean',
@@ -71,7 +71,10 @@ const RESULT_SCHEMA = {
         },
       },
     },
-    warnings: { type: 'array', items: { type: 'string' } },
+    listCutOff: {
+      type: 'boolean',
+      description: 'default false. true ONLY on visible evidence that items are missing: a listed course whose materials section is collapsed/not expanded (course name shown, no items under it), or an item visibly sliced off at the bottom edge. A list that ends naturally (footer, whitespace, page total) is complete → false',
+    },
   },
 };
 
@@ -84,7 +87,7 @@ Extract every course material item that is actually visible. Rules:
 - author and edition: record them exactly as printed (portals often show a "by AUTHOR | Edition: 3RD 13" line under the title); null when absent. These help match the book when no ISBN is shown.
 - listedPrice: if a real price is printed next to the item, record it as a plain number (no currency sign). "$0.00", "included", "free", a struck-through price, or a bundle/rental label is NOT a listed price — record null for those. If no price is legible for that item, set it to null. Never estimate, compute, or carry a price over from another item. Ignore page-level totals and "savings" figures entirely. If the digits are partially obscured or you are not certain of the amount, set its confidence to "low".
 - If the screenshot is not a course-materials page (wrong page, unreadable, not a bookstore), set pageLooksLikeCourseMaterials to false and return an empty items list.
-- Use warnings for anything the student should know (e.g. "the list appears cut off; there may be more items below").`;
+- listCutOff: default false. Set true ONLY when the capture shows visible evidence that items are missing: a course is listed but its materials section is collapsed or not expanded (you can see the course name but no items under it), OR an item is visibly sliced off at the very bottom edge of the capture. Do NOT set it true just because the list could hypothetically continue: if the visible list ends naturally (a footer, whitespace, or a page total), it is complete, so set false. Never use it for missing prices (this page never prints prices, which is normal) or edition/format notation.`;
 
 // The swappable model call: capture blocks in, ParseResult out. The request
 // shape deliberately uses only parameters valid on every current Claude model
@@ -206,7 +209,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       wrongPage: result.pageLooksLikeCourseMaterials === false,
       items: result.items ?? [],
-      warnings: result.warnings ?? [],
+      listCutOff: result.listCutOff === true,
     });
   } catch (err) {
     const status = err?.status === 429 ? 429 : 502;
