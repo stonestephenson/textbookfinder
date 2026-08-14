@@ -40,9 +40,15 @@ else competes with it.
   Apple-bag-style list: hairline-separated rows, right-aligned tabular numbers, emphasized
   total. No dotted leaders.
 - The deadline appears on every screen (slim line or action line).
-- Motion glides: cards rise and fade on `cubic-bezier(0.32, 0.72, 0, 1)`, the answer word
-  settles from a slight blur, list rows cascade a few tens of ms apart. Everything obeys
-  `prefers-reduced-motion`.
+- Motion glides: cards rise and fade on `cubic-bezier(0.32, 0.72, 0, 1)` (the `--glide`
+  token), the answer word settles from a slight blur, list rows cascade a few tens of ms
+  apart. Everything obeys `prefers-reduced-motion`.
+- **Entrance (owner-picked):** the landing settles in top-down over ~1s — eyebrow and
+  headline rise (headline blur-settles, the same signature the answer word uses), then the
+  lede, the units sentence (pill pops, the bill counts up once from $0 in ~0.5s), then the
+  capture line and glass zone together (one specular sweep crosses the glass), then the
+  quiet lines fade. Nothing blocks input; a stepper tap cancels the count instantly; the
+  final figure is always exact.
 
 ## Still banned
 

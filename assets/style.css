@@ -24,6 +24,8 @@
 
   --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif;
 
+  --glide: cubic-bezier(0.32, 0.72, 0, 1);
+  --sheen: rgba(255, 255, 255, 0.5);
   --radius: 22px;
   --radius-s: 14px;
   --pill: 980px;
@@ -49,6 +51,7 @@
 
     --wash-a: rgba(41, 151, 255, 0.10);
     --wash-b: rgba(150, 110, 255, 0.08);
+    --sheen: rgba(255, 255, 255, 0.16);
   }
 }
 
@@ -637,6 +640,61 @@ body[data-step="verdict"] .screen-deadline { display: none; }
 .receipt-lines.reveal .receipt-line:nth-child(4) { animation-delay: 180ms; }
 .receipt-lines.reveal .receipt-line:nth-child(5) { animation-delay: 240ms; }
 .receipt-lines.reveal .receipt-line:nth-child(n+6) { animation-delay: 300ms; }
+
+/* ── Entrance: the question settles in (owner-picked, design.md) ──────────
+   Top-down staggered rise on the landing; the headline blur-settles with
+   the same signature the answer word uses. Everything is CSS, nothing
+   blocks input, and the reduced-motion block above silences it all. */
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes riseBlurIn {
+  from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes fadeInSoft {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hero .eyebrow { animation: riseIn 480ms var(--glide) both; }
+.hero h1 { animation: riseBlurIn 560ms var(--glide) 40ms both; }
+.hero .lede { animation: riseIn 480ms var(--glide) 120ms both; }
+.bill-sentence { animation: riseIn 480ms var(--glide) 240ms both; }
+.capture-lead { animation: riseIn 480ms var(--glide) 380ms both; }
+.drop-zone { animation: riseIn 520ms var(--glide) 380ms both; }
+.alt-line, .btn-go, .privacy-note { animation: fadeInSoft 420ms var(--glide) 480ms both; }
+.screen-deadline, .trust-line { animation: fadeInSoft 420ms var(--glide) 560ms both; }
+
+/* Garnish: the units pill pops as its sentence lands. */
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.88); }
+  70% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.stepper-input { animation: popIn 460ms var(--glide) 300ms both; }
+
+/* Garnish: one specular sweep across the glass as the zone lands. */
+.drop-zone { position: relative; overflow: hidden; }
+.drop-zone::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  bottom: -60%;
+  left: -45%;
+  width: 38%;
+  transform: rotate(16deg);
+  background: linear-gradient(90deg, transparent, var(--sheen), transparent);
+  animation: sweep 900ms var(--glide) 700ms both;
+  pointer-events: none;
+}
+@keyframes sweep {
+  from { translate: 0 0; opacity: 0; }
+  25% { opacity: 1; }
+  to { translate: 420% 0; opacity: 0; }
+}
 
 /* ── Small screens ────────────────────────────────────────────────────── */
 

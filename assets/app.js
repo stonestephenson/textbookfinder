@@ -1077,6 +1077,7 @@ wireVerdictStep();
 // first working piece of the calculator a visitor touches. An out-of-range
 // or empty field never fakes a dollar figure; it asks instead.
 function updateBill() {
+  billCountLive = false;
   const units = readUnits();
   const out = $('bill-out');
   if (out) {
@@ -1104,8 +1105,34 @@ $('units-plus')?.addEventListener('click', () => nudgeUnits(1));
 $('screen-deadline').textContent = config.optOutDeadline
   ? `Opt-out deadline: ${formatDeadline(config.optOutDeadline)}.`
   : `Opt out by SSU’s add/drop deadline for ${config.term}.`;
+// Garnish: the bill counts up once as its sentence lands (~240ms in). Any
+// interaction cancels it; reduced-motion never starts it. The final figure
+// is set exactly either way.
+let billCountLive = false;
 showStep('input'); // marks the stepper's starting position and renders the panel
 updateBill();
+function countUpBill() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const el = $('bill-amount');
+  if (!el) return;
+  const target = Number(el.textContent.replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(target) || target <= 0) return;
+  el.style.display = 'inline-block';
+  el.style.minWidth = `${Math.ceil(el.getBoundingClientRect().width)}px`; // no reflow of the sentence
+  billCountLive = true;
+  const t0 = performance.now();
+  const DURATION = 500;
+  const tick = (t) => {
+    if (!billCountLive) return; // a stepper tap took over
+    const p = Math.min(1, (t - t0) / DURATION);
+    const eased = 1 - (1 - p) ** 3;
+    el.textContent = fmt(Math.round(target * eased * 100) / 100);
+    if (p < 1) requestAnimationFrame(tick);
+    else billCountLive = false;
+  };
+  requestAnimationFrame(tick);
+}
+setTimeout(countUpBill, 260);
 
 // Tailor the capture instruction to this device so nobody reads three sets of
 // steps. Detection is read locally from the browser and never transmitted.
