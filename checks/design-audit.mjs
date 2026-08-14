@@ -195,7 +195,7 @@ const AUDIT_FN = `
     if (colors.some((c) => norm(c) === accentKey)) {
       out.accentUses.push({
         what: 'accent:' + el.tagName + '.' + String(el.className).slice(0, 40),
-        allowed: Boolean(el.closest('a, button, .linkish, input, select, [role="button"]')),
+        allowed: Boolean(el.closest('a, button, .linkish, input, select, summary, [role="button"]')),
       });
     }
     if (colors.some((c) => norm(c) === warnKey)) {

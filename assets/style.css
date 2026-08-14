@@ -572,6 +572,25 @@ textarea {
 .skip-label { font-size: 0.86rem; color: var(--grey); display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; }
 input[type="checkbox"] { accent-color: var(--accent); width: 1.05rem; height: 1.05rem; }
 
+/* Other ways to pay less: a collapsed expander, quiet until asked. */
+.pay-less { margin: 0.3rem 0 0; }
+.pay-less > summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.92rem;
+  color: var(--accent);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pay-less > summary::-webkit-details-marker { display: none; }
+.pay-less > summary::before { content: '+'; width: 0.9rem; color: var(--grey); font-weight: 600; text-align: center; }
+.pay-less[open] > summary::before { content: '\2212'; }
+.pay-less ul { margin: 0.1rem 0 0.6rem; padding-left: 1.3rem; font-size: 0.92rem; }
+.pay-less li { margin: 0.35rem 0; }
+.pay-less strong { font-weight: 600; }
+
 /* ── Rails under the tool ─────────────────────────────────────────────── */
 
 .screen-deadline {
