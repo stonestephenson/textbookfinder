@@ -13,7 +13,13 @@
    If you add or change UI copy containing a fact, update CLAIMS.md in the same commit. If a
    claim can't be sourced, it doesn't ship.
 3. `METHODOLOGY.md` — the verdict specification. Code in `assets/verdict.js` must match it;
-   change them together or not at all.
+   change them together or not at all. It also specifies the price/resolve policy (offer
+   selection, the no-ISBN matcher, courseware).
+4. `ARCHITECTURE.md` — the pipeline and data model: the `input → confirm → resolve → price →
+   verdict` flow, the canonical item shape, `priceSource` precedence, and the tuning constants
+   that live **outside** `config.js`. Read this before touching `assets/app.js` or an `api/` file.
+5. `design.md` — the visual direction (Apple "liquid glass"). `checks/design-audit.mjs` enforces
+   it; a visual change that fails the audit is checked against this brief.
 
 ## Non-negotiable invariants (architectural, not style)
 
@@ -38,11 +44,17 @@
 
 - **Done-gate:** `bash .claude/verify.sh` (syntax-checks all JS, runs `node --test`). Green
   before any commit.
-- **Test-first** for changes to `assets/verdict.js` and `assets/parse-text.js` — both are pure
-  and fully covered in `tests/`. Never weaken a test to make it pass.
+- **Test-first** for the four pure modules — `assets/verdict.js`, `assets/parse-text.js`,
+  `api/pick-offer.js`, `api/resolve-match.js` — each fully covered in `tests/`. Never weaken a
+  test to make it pass.
+- **Beyond the done-gate:** `bash .claude/verify.sh` runs only the unit tests. Also run
+  `node checks/e2e.mjs` (full browser flow + all three API contracts, no keys) and
+  `node checks/design-audit.mjs` after UI changes, and `node --env-file=.env checks/parse-live.mjs`
+  (real vision + BooksRun, ~2–5¢) after touching `api/parse.js` or the capture pipeline. See README.
 - **Zero dependencies for the site.** No frameworks, no build step — survivability past the
   author's December 2026 graduation is a requirement. The one allowed dependency is
-  `@anthropic-ai/sdk`, used only by `api/parse.js`.
+  `@anthropic-ai/sdk`, used only by `api/parse.js`; `api/price.js` and `api/resolve.js` use
+  native `fetch`.
 - **Semester-variable values live only in `assets/config.js`**; current-rate mentions in
   `index.html` are data-bound via `[data-config]` spans. Don't hardcode the rate anywhere else.
   (The "Why this tool exists" story keeps its 2026 numbers on purpose — it's a dated case.)
@@ -51,6 +63,10 @@
 - **The price call is quarantined the same way** in `api/price.js` → `pickOffer()`
   (`api/pick-offer.js`, pure and unit-tested). With `config.priceEndpoint = null` or the
   endpoint down, price fields stay manual and the search links carry the flow, silently.
+- **The ISBN resolver is quarantined too** in `api/resolve.js` → `pickResolution()`
+  (`api/resolve-match.js`, pure and unit-tested). It fills a missing ISBN from title+author so
+  the price lookup has something to search (the bundle portal prints no ISBNs). With
+  `config.resolveEndpoint = null` or the endpoint down, ISBN-less items just stay manual.
 - **After any substantive change to copy or verdict logic**, run a fresh-context adversarial
   check: spawn a subagent with no session context, give it only `SEAWOLF_BUNDLE_CONTEXT.md` +
   the built site, and ask it to find (a) unsourced claims, (b) §5 leakage, (c) wrong/overstated
@@ -58,10 +74,24 @@
 
 ## Deploy & publish
 
-- Static + one Vercel serverless function. `ANTHROPIC_API_KEY` (+ optional `PARSE_MODEL`) in the
-  deployment environment. See README "Deploying".
+- Static + **three Vercel serverless functions** (`api/parse.js`, `api/price.js`,
+  `api/resolve.js`; `pick-offer.js`/`resolve-match.js` are imported helpers, not endpoints).
+  Environment: `ANTHROPIC_API_KEY` (+ optional `PARSE_MODEL`) and `BOOKSRUN_API_KEY`; set a spend
+  cap on the Anthropic account. `api/resolve.js` needs no key. See README "Deploying" for the
+  full checklist and the GitHub-Pages / Netlify fallbacks.
 - Remote: `https://github.com/stonestephenson/textbookfinder.git`, branch `main`. Commit and
   push are authorized for this project.
+
+## Next up (open tasks)
+
+- **Deploy to Vercel** — the whole local loop is proven; this is the only step between the site
+  and users. Follow the README checklist (import repo, set both keys + spend cap, point domain).
+- **Field test with 10–15 real student carts** before the Sept 4 add/drop deadline. This is the
+  only reliable source of edge cases (every parser and pricing fix so far came from one) and
+  cannot be skipped or compressed.
+- **Pending decision:** the opt-out deadline conflict (official Sept 4 vs a student portal's
+  Sept 13). The site shows the earlier, safe date; a written answer from the bookstore settles
+  it (one-line `config.js` change). See `CLAIMS.md` #29.
 
 ## Roadmap context (don't build ahead of it)
 

@@ -82,29 +82,37 @@ function (below); without it the site degrades gracefully to paste/manual entry.
 Tests and checks (requires Node 18+; the browser suites need Chrome installed):
 
 ```sh
-npm test                 # unit tests for the verdict math and text parser
+npm test                 # unit tests: verdict math, text parser, offer selection,
+                         #   ISBN-match logic (tests/*.test.js — currently 51)
 bash .claude/verify.sh   # syntax-check all JS + run tests (the done-gate, sub-second)
 
 node checks/e2e.mjs      # full user journey in headless Chrome: paste → confirm →
-                         #   prices → all four verdict states, plus the /api/parse
-                         #   contract (validation, error, and no-key responses).
-                         #   Makes no model calls and needs no API key.
-node checks/design-audit.mjs   # the design-brief audit (spacing, contrast, copy rules)
+                         #   prices → all four verdict states, plus the /api/parse,
+                         #   /api/price, and /api/resolve contracts (validation, error,
+                         #   no-key responses). Makes no live calls; needs no API key.
+node checks/design-audit.mjs   # the design-brief audit (glass, contrast, copy rules)
 
-ANTHROPIC_API_KEY=sk-ant-... node checks/parse-live.mjs
-                         # the ONE test that calls the real model: renders synthetic
-                         #   course-materials fixtures, uploads them through the real
-                         #   UI as a screenshot, a tall scrolling screenshot, and a
-                         #   multi-page PDF, and checks the parsed items against
-                         #   ground truth. ~2–5 cents per run. Run before deploying
-                         #   and after changing api/parse.js or the capture pipeline.
+node --env-file=.env checks/parse-live.mjs
+                         # the ONE test that calls real services: renders synthetic
+                         #   course-materials fixtures, uploads them through the real UI
+                         #   as a screenshot, a tall scrolling screenshot, and a
+                         #   multi-page PDF, and drives them all the way to the verdict —
+                         #   live Claude vision (ANTHROPIC_API_KEY) AND live BooksRun
+                         #   pricing (BOOKSRUN_API_KEY). ~2–5 cents per run. Run before
+                         #   deploying and after changing api/parse.js or the pipeline.
 ```
 
-To click around the whole site locally with a live parse endpoint (what Vercel runs
-in production), use the dev server instead of `http.server`:
+**Keys and `.env`.** The live commands need API keys. A gitignored `.env` in the repo root
+(never committed — see `.gitignore`) is the convenient home for `ANTHROPIC_API_KEY` and
+`BOOKSRUN_API_KEY`; the scripts do **not** auto-load it, so pass `node --env-file=.env …`
+(as above). A fresh clone has no `.env` — create one, or export the vars inline. Without a
+key a script degrades honestly (the parser answers 503, prices stay manual); it never crashes.
+
+To click around the whole site locally with all three live endpoints (what Vercel runs in
+production), use the dev server instead of `http.server`:
 
 ```sh
-ANTHROPIC_API_KEY=sk-ant-... node checks/dev-server.mjs
+node --env-file=.env checks/dev-server.mjs
 ```
 
 None of the real bookstore's pages are used in any test fixture. The live test's fixtures
@@ -116,26 +124,32 @@ what the pre-launch student test is for.
 **Vercel (recommended — it's what makes screenshot parsing and price lookup work):**
 
 1. Import the GitHub repo into Vercel. No framework, no build command — it's static files plus
-   two serverless functions (`api/parse.js`, `api/price.js`).
+   **three serverless functions**: `api/parse.js` (screenshot → items, Claude vision),
+   `api/resolve.js` (title+author → ISBN when the page shows none, OpenLibrary), and
+   `api/price.js` (ISBN → real offer, BooksRun). Every file under `api/` auto-deploys as a
+   function; `api/pick-offer.js` and `api/resolve-match.js` are pure helpers the functions
+   import, not endpoints of their own.
 2. Set the environment variable `ANTHROPIC_API_KEY` (get one at console.anthropic.com).
    Optional: `PARSE_MODEL` to override the vision model — the default is `claude-haiku-4-5`
    (roughly half a cent per screenshot; a whole semester of campus use is a few dollars).
 3. Set the environment variable `BOOKSRUN_API_KEY` (free, from booksrun.com's API signup) so
-   price fields fill themselves in. Without it the endpoint answers 503 and students price
-   items by hand at the search links — the site keeps working.
+   price fields fill themselves in. Without it that endpoint answers 503 and students price
+   items by hand at the links — the site keeps working. (`api/resolve.js` needs no key:
+   OpenLibrary is a public catalog.)
 4. **Set a spend cap** on the Anthropic account. The parse endpoint validates and size-limits
    input but is publicly callable; a monthly cap bounds worst-case abuse.
 5. Point the domain at the deployment.
 
-**Netlify** works the same way (the functions need the usual Netlify function wrapper if you
-migrate them). **GitHub Pages** serves the static site fine but cannot run the functions —
-set `parseEndpoint: null` and `priceEndpoint: null` in `config.js` and the site runs in
-paste/manual mode only.
+**Netlify** works the same way (each of the three functions needs the usual Netlify wrapper if
+you migrate them). **GitHub Pages** serves the static site fine but cannot run the functions —
+set `parseEndpoint: null`, `priceEndpoint: null`, **and** `resolveEndpoint: null` in
+`config.js` and the site runs in paste/manual mode only.
 
-The vision call lives entirely in [`api/parse.js`](api/parse.js) behind one function
-(`extractItems`); the price source lives entirely in [`api/price.js`](api/price.js) behind
-one pure function ([`api/pick-offer.js`](api/pick-offer.js)) — swapping either provider
-touches only its file.
+Each provider is quarantined behind one function: the vision call in
+[`api/parse.js`](api/parse.js) (`extractItems`), the price source in
+[`api/price.js`](api/price.js) via the pure [`api/pick-offer.js`](api/pick-offer.js), and the
+ISBN match in [`api/resolve.js`](api/resolve.js) via the pure
+[`api/resolve-match.js`](api/resolve-match.js) — swapping any provider touches only its file.
 
 ## Handing this off
 
@@ -153,17 +167,24 @@ faculty, a student club — needs:
 ## Repository layout
 
 ```
-index.html                assets/style.css        The page (static, no build)
-assets/app.js             Flow: input → confirm → verdict
+index.html                assets/style.css        The main page (static, no build)
+why.html                  The "Why trust this?" page (sources, contract, data handling)
+assets/app.js             Flow state machine: input → confirm → verdict (orchestration)
 assets/config.js          ★ Semester config — the only file that needs regular editing
-assets/parse-text.js      In-browser parser for pasted text
+assets/bind.js            Binds config values + verified links into the static HTML (both pages)
+assets/parse-text.js      In-browser parser for pasted text (portal-dialect aware)
 assets/verdict.js         The arithmetic + recommendation rules (pure, tested)
 api/parse.js              Serverless screenshot parser (the only file that calls an AI model)
-api/price.js              Serverless price lookup (ISBNs in, real offers out)
+api/price.js              Serverless price lookup (ISBNs in, real offers out; BooksRun)
 api/pick-offer.js         Offer selection policy (pure, tested)
-tests/                    node --test suites for verdict, text parser, offer selection
+api/resolve.js            Serverless ISBN resolver (title+author → ISBN; OpenLibrary)
+api/resolve-match.js      Title+author match scoring (pure, tested)
+tests/                    node --test suites: verdict, text parser, offer selection, ISBN match
+checks/                   Browser harness: e2e.mjs, design-audit.mjs, parse-live.mjs, dev-server.mjs
+ARCHITECTURE.md           The pipeline, the item shape, and the knobs outside config.js
 METHODOLOGY.md            Exactly how the verdict is computed, and what the tool doesn't know
 CLAIMS.md                 Audit trail: every UI claim → its source
+design.md                 The visual direction the design audit enforces
 contract/                 The public-records production backing the claims
 .claude/verify.sh         Done-gate: JS syntax check + tests
 ```

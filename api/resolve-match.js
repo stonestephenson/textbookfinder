@@ -55,6 +55,11 @@ export function pickResolution(docs, item) {
     if (!authors.some((a) => a.includes(surname))) return null;
     const got = new Set(contentTokens(doc.title ?? ''));
     const overlap = wanted.filter((t) => got.has(t)).length / wanted.length;
+    // 0.6 = the title-match precision/recall knob (see ARCHITECTURE.md tunables):
+    // at least 60% of the item's content words must appear in the candidate's
+    // title. Lower admits more (and more wrong) matches; higher rejects valid
+    // ones with subtitle drift. A wrong book prices cheap and mis-verdicts, so
+    // this errs strict — a weak match resolves to nothing and the item stays manual.
     if (overlap < 0.6) return null;
     const isbn13s = (doc.isbn ?? [])
       .filter((i) => /^97[89]\d{10}$/.test(i) && isValidIsbn(i))

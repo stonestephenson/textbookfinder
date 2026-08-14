@@ -182,6 +182,9 @@ async function prepareImage(file) {
 
     // A scrolling/full-page capture downscaled whole becomes unreadable —
     // slice very tall images into overlapping segments at full legibility.
+    // sliceH = 2× width targets a roughly page-shaped (portrait) segment; the
+    // trigger (taller than 1.4× that AND past 2200px) avoids slicing ordinary
+    // screenshots. Constants documented in ARCHITECTURE.md (capture pipeline).
     const sliceH = bitmap.width * 2;
     if (bitmap.height > sliceH * 1.4 && bitmap.height > 2200) {
       const n = Math.min(4, Math.ceil(bitmap.height / sliceH));
