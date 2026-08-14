@@ -312,6 +312,26 @@ async function browserFlows(base) {
       expect(!r.links.some((h) => h.includes('amazon')), 'an access code must not link to Amazon');
     });
 
+    await check('flow: an unmapped access code falls back to a search link, never a dead end', async () => {
+      const r = await page(`(async () => {
+        document.getElementById('units-input').value = '3';
+        document.getElementById('units-input').dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('text-input').value = 'CS 210 01\\nFooLearn Adaptive Platform\\nFormat: Access code';
+        document.getElementById('go-btn').click();
+        ${sleep(300)}
+        document.getElementById('confirm-btn').click();
+        ${sleep(400)}
+        return {
+          accessFlags: document.querySelectorAll('.v-item [data-audit="access-flag"]').length,
+          links: [...document.querySelectorAll('.retailer-links a')].map((a) => a.href),
+        };
+      })()`);
+      expect(r.accessFlags >= 1, 'access-code format not honored');
+      expect(r.links.length >= 1, 'unmapped code left with no link at all');
+      expect(r.links.some((h) => h.includes('google.com/search')), `expected a search fallback: ${r.links.join(', ')}`);
+      expect(!r.links.some((h) => h.includes('amazon') || h.includes('abebooks')), 'access code must not link to book marketplaces');
+    });
+
     await check('flow: manual entry opens an editable empty item', async () => {
       const r = await page(`(async () => {
         document.getElementById('manual-entry-link').click();

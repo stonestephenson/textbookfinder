@@ -76,6 +76,12 @@ export const config = {
     'Sapling',
     'Knewton',
     'Hawkes',
+    'WileyPLUS',
+    'InQuizitive', // Norton
+    'Smartwork', // Norton
+    'Perusall',
+    'Packback',
+    'iClicker',
     'access code',
     'access card',
     'courseware',
@@ -102,6 +108,12 @@ export const config = {
     { match: 'Sapling', name: 'Macmillan', url: 'https://www.macmillanlearning.com/' },
     { match: 'Top Hat', name: 'Top Hat', url: 'https://tophat.com/' },
     { match: 'Hawkes', name: 'Hawkes Learning', url: 'https://www.hawkeslearning.com/' },
+    { match: 'WileyPLUS', name: 'Wiley', url: 'https://www.wiley.com/' },
+    { match: 'InQuizitive', name: 'Norton', url: 'https://wwnorton.com/' },
+    { match: 'Smartwork', name: 'Norton', url: 'https://wwnorton.com/' },
+    { match: 'Perusall', name: 'Perusall', url: 'https://www.perusall.com/' },
+    { match: 'Packback', name: 'Packback', url: 'https://www.packback.com/' },
+    { match: 'iClicker', name: 'iClicker', url: 'https://www.iclicker.com/' },
   ],
 
   // Where "find the real price" links point. {q} is replaced with the ISBN
