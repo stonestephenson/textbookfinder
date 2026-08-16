@@ -106,7 +106,7 @@ a:hover { text-decoration: underline; }
 .hero { padding: 3.4rem 0 0.6rem; text-align: center; }
 .hero h1 { margin: 0.55rem auto 0.3rem; transition: font-size 260ms ease, margin 260ms ease; }
 
-body[data-step]:not([data-step="input"]) .hero { padding: 1.6rem 0 0; }
+body[data-step]:not([data-step="input"]) .hero { padding: 2.6rem 0 1rem; }
 body[data-step]:not([data-step="input"]) .hero h1 { font-size: 1.05rem; margin: 0; letter-spacing: -0.01em; }
 body[data-step]:not([data-step="input"]) .hero .eyebrow,
 body[data-step]:not([data-step="input"]) .hero .hero-flow { display: none; }
