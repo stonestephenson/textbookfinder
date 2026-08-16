@@ -1129,12 +1129,11 @@ function updateBill() {
   const out = $('bill-out');
   if (out) {
     if (units == null) {
-      out.innerHTML = `Enter units between 1 and ${config.maxUnits} to see your bill.`;
+      out.innerHTML = '<strong id="bill-amount" class="cost-na">Enter units</strong>';
     } else {
       heroUnits = units;
       const amount = fmt(Math.round(units * config.pricePerUnit * 100) / 100);
-      out.innerHTML = `Unless you opt out, SSU bills you
-        <strong id="bill-amount">${amount}</strong> for the bundle this semester.`;
+      out.innerHTML = `<strong id="bill-amount">${amount}</strong>`;
     }
   }
 }

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f2f6f5" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f181b" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#101012">
   <title>Is the Seawolf Bundle worth it?</title>
   <meta name="description" content="SSU bills every undergrad $21 per unit for course materials unless they opt out. This free calculator checks your own cart and answers either way.">
   <meta property="og:title" content="Is the Seawolf Bundle worth it?">
@@ -21,21 +20,19 @@
     <p class="eyebrow">For Sonoma State students &amp; families</p>
     <h1>Is the Seawolf Bundle worth it?</h1>
     <div class="hero-flow">
-      <p class="lede">SSU bills every undergraduate
-        <strong><span data-config="pricePerUnit">$21.00</span> per unit</strong> for course
-        materials unless they opt out. Worth it? Let&rsquo;s check your cart.</p>
-      <div class="bill-sentence">
-        <span class="bill-lead">You&rsquo;re registered for</span>
-        <span class="stepper-input">
-          <button type="button" class="step-btn" id="units-minus" aria-label="One unit fewer">&minus;</button>
-          <input type="number" id="units-input" inputmode="numeric" min="1" max="24" value="15"
-            aria-label="Units you are registered for">
-          <button type="button" class="step-btn" id="units-plus" aria-label="One unit more">+</button>
-        </span>
-        <span class="bill-lead">units.</span>
-        <span class="bill-out" id="bill-out">Unless you opt out, SSU bills you
-          <strong id="bill-amount">$315.00</strong> for the bundle this semester.</span>
+      <div class="hero-cost">
+        <p class="cost-label">Unless you opt out, the bundle costs</p>
+        <p class="cost-figure" id="bill-out"><strong id="bill-amount">$315.00</strong></p>
+        <p class="cost-row">for
+          <span class="stepper">
+            <button type="button" class="step-btn" id="units-minus" aria-label="One unit fewer">&minus;</button>
+            <input type="number" id="units-input" inputmode="numeric" min="1" max="24" value="15"
+              aria-label="Units you are registered for">
+            <button type="button" class="step-btn" id="units-plus" aria-label="One unit more">+</button>
+          </span>
+          units this semester, at <span data-config="pricePerUnit">$21.00</span> each.</p>
       </div>
+      <p class="hero-ask">Is your own cart cheaper? Add it and we&rsquo;ll do the math.</p>
     </div>
   </header>
 
