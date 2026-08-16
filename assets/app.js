@@ -992,9 +992,11 @@ function updateVerdictPanel(animate = false) {
       the bundle can genuinely be the better deal, and this tool will say so when your numbers show it.</p>`
     : '';
 
-  // The receipt, as a subtraction that actually parses: the bundle charge
-  // first, each of your priced items deducted from it with a signed amount,
-  // a double rule, then the labeled difference in the same money column.
+  // The verdict as a plain subtraction: the bundle charge first, each priced
+  // item deducted with a signed amount, a hairline rule, then the labeled
+  // difference in the same money column. (The `receipt-*` class names are
+  // legacy from an earlier direction; the leaders are hidden and rows are
+  // hairline-separated, so the rendering matches design.md.)
   // Every state gets this same treatment; the state classes carry no styling.
   const bundleLine = `<div class="receipt-line">
       <span class="r-name">Seawolf Bundle, <span class="num">${state.units}</span> units</span>

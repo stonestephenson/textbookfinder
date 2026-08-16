@@ -73,7 +73,9 @@ unit-tested). Selection rules:
   cheaper.
 - Ebook offers are excluded: platform access isn't ownership and muddies the comparison.
 - For **access-code items, only new offers count**: a used or rented access card is usually
-  already consumed and worthless, so those offers are discarded even when cheapest.
+  already consumed and worthless, so those offers are discarded even when cheapest. (This one
+  filter is applied in the client, `assets/app.js` `fetchPrices`, not the price core — which
+  matches by ISBN and never sees an item's type.)
 - The compared number is always **price plus shipping**.
 - Each offer links to the store's catalog page for that ISBN (an address built from the ISBN
   and title). The API's own offer links are session-bound cart actions carrying an affiliate

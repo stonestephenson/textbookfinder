@@ -91,11 +91,13 @@ python3 -m http.server 8000     # from the repo root
 Pasted-text parsing and the whole flow work locally. Screenshot parsing requires the API
 function (below); without it the site degrades gracefully to paste/manual entry.
 
-Tests and checks (requires Node 18+; the browser suites need Chrome installed):
+Tests and checks (Node 18+ for the unit/e2e/design tracks; the `--env-file` live and dev-server
+commands below need Node ≥20.6; the browser suites need Chrome installed):
 
 ```sh
 npm test                 # unit tests: verdict math, text parser, offer selection,
-                         #   ISBN-match logic (tests/*.test.js — currently 51)
+                         #   ISBN-match logic, schedule parser, units estimate
+                         #   (tests/*.test.js — currently 67)
 bash .claude/verify.sh   # syntax-check all JS + run tests (the done-gate, sub-second)
 
 node checks/e2e.mjs      # full user journey in headless Chrome: paste → confirm →
@@ -126,6 +128,9 @@ production), use the dev server instead of `http.server`:
 ```sh
 node --env-file=.env checks/dev-server.mjs
 ```
+
+It binds a random free port and prints the URL (e.g. `http://127.0.0.1:49533`) to the console.
+Unlike the `:8000` static server there is no fixed address — read it off the console output.
 
 None of the real bookstore's pages are used in any test fixture. The live test's fixtures
 are synthetic pages styled like a generic bookstore portal; testing against real carts is

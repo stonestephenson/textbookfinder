@@ -88,8 +88,11 @@ Both exist so a slow network response can't clobber a newer user edit. Don't rem
 | `/api/price` | BooksRun | `BOOKSRUN_API_KEY` | `api/_pick-offer.js` | `priceEndpoint` |
 
 Every endpoint degrades to null-safe: set its `config.*Endpoint` to `null`, or let it 503, and
-the flow keeps working with manual pricing. The pure cores hold all the policy and are
-unit-tested; the handler files are just validation + fetch + the pure call. Swapping a provider
+the flow keeps working with manual pricing. The pure cores hold the provider selection policy and
+are unit-tested; the handler files are just validation + fetch + the pure call. (One pricing rule
+lives outside them: the access-code "new offers only" filter is applied client-side in
+`assets/app.js` `fetchPrices`, because `_pick-offer.js` matches by ISBN and never sees an item's
+type.) Swapping a provider
 touches one handler + its pure core, nothing else. Response shapes for BooksRun and OpenLibrary
 are documented in the test headers (`tests/pick-offer.test.js`, `tests/resolve-match.test.js`).
 

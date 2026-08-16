@@ -6,8 +6,10 @@
    **unverified-claims list (§5)**, and settled design decisions (§6). Do not relitigate settled
    decisions; do not let anything from §5 into user-visible copy.
    ⚠️ This file is **deliberately untracked** (see `.gitignore`): it contains unverified working
-   analysis and pending-inquiry strategy that must not ship with the public site. It lives only
-   in the maintainer's working copy — if it's missing from your checkout, ask the maintainer;
+   analysis and pending-inquiry strategy that must not ship with the public site. It lives only in
+   the maintainer's working copy and is **absent from every fresh clone**. If it's missing you
+   cannot safely edit user-visible copy or run the mandated adversarial-QA check below (which needs
+   §5) — get §5 (the copy-blocklist) and §6 (settled decisions) from the maintainer first. Ask;
    never commit it without their explicit decision to publish.
 2. `CLAIMS.md` — the audit trail. **Every factual assertion in the UI must have an entry here.**
    If you add or change UI copy containing a fact, update CLAIMS.md in the same commit. If a
@@ -90,22 +92,22 @@
 
 ## Next up (open tasks)
 
-- **Deploy to Vercel** — the whole local loop is proven; this is the only step between the site
-  and users. Follow the README checklist (import repo, set both keys + spend cap, point domain).
-- **Field test with 10–15 real student carts** before the Sept 4 add/drop deadline. This is the
-  only reliable source of edge cases (every parser and pricing fix so far came from one) and
-  cannot be skipped or compressed.
+- **Field test with 10–15 real student carts** (current step) before the Sept 4 add/drop
+  deadline — the only reliable source of edge cases (every parser and pricing fix so far came from
+  one), uncompressible. Run real carts, fix what the parser or pricing trips on.
 - **Pending decision:** the opt-out deadline conflict (official Sept 4 vs a student portal's
-  Sept 13). The site shows the earlier, safe date; a written answer from the bookstore settles
-  it (one-line `config.js` change). See `CLAIMS.md` #29.
+  Sept 13). The site shows the earlier, safe date; a written answer from the bookstore settles it
+  (one-line `config.js` change). See `CLAIMS.md` #29. (Bookstore emailed 2026-08-15.)
+- **Done (2026-08-14):** deployed to Vercel and live — both keys + Anthropic spend cap set, all
+  three endpoints verified in production, auto-deploys on push. Landing redesigned to "the number
+  leads" + dark-only; units auto-seed from the term's Schedule of Classes (per-semester regen).
 
 ## Roadmap context (don't build ahead of it)
 
-- **v1 (now):** the single-flow calculator. No accounts, no DB. (The original "no price API"
-  scope was amended 2026-08-11: `api/price.js` auto-fills offers, see invariants above.) Ship before Fall
-  2026 add/drop (~early-to-mid September), then ~1 week of real testing with 10–15 students'
-  actual carts — that testing step is the only reliable source of edge cases and cannot be
-  skipped or compressed.
+- **v1 (shipped 2026-08-14, now field-testing):** the single-flow calculator. No accounts, no DB.
+  (The original "no price API" scope was amended 2026-08-11: `api/price.js` auto-fills offers, see
+  invariants above.) The remaining pre-Fall-add/drop step is ~1 week of real testing with 10–15
+  students' actual carts — the only reliable source of edge cases, uncompressible.
 - **v2 (only if v1 survives the term):** browsable course→materials database. Rules already
   settled in context §6: only artifact-backed (screenshot) submissions write to the shared DB;
   typed input stays personal; records stamped with term + capture date; mappings never carried
