@@ -1193,9 +1193,9 @@ function detectDevice() {
 }
 
 const DEVICE_CAPTURE = {
-  ios: 'Screenshot it (<strong>Full&nbsp;Page</strong> grabs the whole list) and add it below.',
-  android: 'Take a scrolling screenshot and add it below.',
-  desktop: 'Copy the whole page (<strong>Ctrl/Cmd&#8209;A</strong>) and paste it below.',
+  ios: 'screenshot it (<strong>Full&nbsp;Page</strong> grabs the whole list) and add it below.',
+  android: 'take a scrolling screenshot and add it below.',
+  desktop: 'copy the whole page (<strong>Ctrl/Cmd&#8209;A</strong>) and paste it below.',
 };
 
 const device = detectDevice();
